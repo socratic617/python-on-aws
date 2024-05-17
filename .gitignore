@@ -1,6 +1,7 @@
 # Python .gitignore template from
 # https://github.com/github/gitignore/blob/main/Python.gitignore
 
+*test_dir
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -174,6 +175,4 @@ dist
 *env
 *.env
 *cache*
-week-1/section-2--boto3/notebooks/test_dir/file1.txt
-week-1/section-2--boto3/notebooks/test_dir/file2.txt
-week-1/section-2--boto3/notebooks/test_dir/subdir/file3.txt
+
