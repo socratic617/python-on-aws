@@ -5,7 +5,13 @@ markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.black]
 line-length = 119
-exclude = ["venv"]
+# regular expression ignoring multiple patterns separated by '|' and newlines
+exclude = '''
+/(
+    \.venv
+  | venv
+)/
+'''
 
 [tool.flake8]
 docstring-convention = "all"
@@ -18,9 +24,10 @@ radon-max-cc = 10
 
 [tool.isort]
 profile = "black"
+line_length = 119
+# stack imports onto separate lines to minimize chance of merge conflicts from editing the same line
 multi_line_output = "VERTICAL_HANGING_INDENT"
 force_grid_wrap = 2
-line_length = 119
 
 [tool.pylint."messages control"]
 disable = [

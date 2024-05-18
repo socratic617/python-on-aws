@@ -22,7 +22,7 @@ TODO:
 - remove the boilerplate from the cookiecutter template. No cities.json stuff.
 - simplify the project, e.g. don't need slow markers, ruff, test:quick, etc.
 - Fix there are some lingering, explicit references to cookiecutter in the generated project
-  
+
   ```python
     """
     Unit tests for cookiecutter.repo_name.
