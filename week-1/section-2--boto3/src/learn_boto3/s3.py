@@ -2,10 +2,7 @@ import boto3
 
 try:
     from mypy_boto3_s3 import S3Client
-    from mypy_boto3_s3.type_defs import (
-        PutObjectOutputTypeDef,
-        ResponseMetadataTypeDef,
-    )
+    from mypy_boto3_s3.type_defs import PutObjectOutputTypeDef
 except ImportError:
     print("boto3-stubs[s3] is not installed")
 
