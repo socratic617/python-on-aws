@@ -8,18 +8,16 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse
-from files_api.schemas import (
+from files_api.s3.list_objects import (
+    fetch_s3_objects,
+    fetch_s3_objects_using_page_token,
+)
+from files_api.schemas.list_files import (
     FileListResponse,
     FileMetadata,
     FileQueryParams,
 )
 from pydantic import ValidationError
-
-try:
-    pass
-except ImportError:
-    ...
-
 
 APP = FastAPI(docs_url="/")
 
@@ -76,7 +74,7 @@ async def list_files(query_params: Annotated[FileQueryParams, Depends()]) -> Fil
 async def handle_errors_globally(request: Request, exc: Exception):
     """Handle any raised exceptions that were not handled by a more specific exception handler."""
     # TODO: log level with trace ID
-    print("exception:", str(exc))
+    print("exception stack trace:", str(exc))
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

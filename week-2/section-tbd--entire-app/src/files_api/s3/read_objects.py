@@ -12,6 +12,28 @@ except ImportError:
     ...
 
 
+def object_exists_in_s3(bucket_name: str, object_key: str, s3_client: Optional["S3Client"] = None) -> bool:
+    """
+    Check if an object exists in the S3 bucket using head_object.
+
+    :param bucket_name: Name of the S3 bucket.
+    :param object_key: Key of the object to check.
+    :param s3_client: Optional S3 client to use. If not provided, a new client will be created.
+
+    :return: True if the object exists, False otherwise.
+    """
+    s3_client = s3_client or boto3.client("s3")
+    try:
+        s3_client.head_object(Bucket=bucket_name, Key=object_key)
+        return True
+    except s3_client.exceptions.ClientError as e:
+        error_code = e.response["Error"]["Code"]
+        if error_code == "404":
+            return False
+        else:
+            raise
+
+
 def fetch_s3_objects_using_page_token(
     bucket_name: str,
     continuation_token: str,
