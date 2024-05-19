@@ -37,7 +37,7 @@ def object_exists_in_s3(bucket_name: str, object_key: str, s3_client: Optional["
 def fetch_s3_objects_using_page_token(
     bucket_name: str,
     continuation_token: str,
-    max_keys: Optional[int] = None,
+    max_keys: int = 1_000,
     s3_client: Optional["S3Client"] = None,
 ) -> tuple[list["ObjectTypeDef"], Optional[str]]:
     """
@@ -67,7 +67,7 @@ def fetch_s3_objects_using_page_token(
 def fetch_s3_objects(
     bucket_name: str,
     prefix: Optional[str] = None,
-    max_keys: Optional[int] = None,
+    max_keys: Optional[int] = 1_000,
     s3_client: Optional["S3Client"] = None,
 ) -> tuple[list["ObjectTypeDef"], Optional[str]]:
     """
@@ -83,7 +83,7 @@ def fetch_s3_objects(
         2. Next continuation token if there are more pages, otherwise None.
     """
     s3_client = s3_client or boto3.client("s3")
-    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix, MaxKeys=max_keys)
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix or "", MaxKeys=max_keys)
     files: list["ObjectTypeDef"] = response.get("Contents", [])
     next_page_token: str | None = response.get("NextContinuationToken")
 

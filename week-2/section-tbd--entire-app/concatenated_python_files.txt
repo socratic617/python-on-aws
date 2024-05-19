@@ -1,0 +1,639 @@
+.
+├── htmlcov
+├── src
+│   └── files_api
+│       ├── __init__.py
+│       ├── main.py
+│       ├── routes
+│       │   └── __init__.py
+│       ├── s3
+│       │   ├── __init__.py
+│       │   ├── delete_objects.py
+│       │   ├── read_objects.py
+│       │   └── write_objects.py
+│       ├── schemas
+│       │   ├── __init__.py
+│       │   └── list_files.py
+│       └── schemas.py
+├── test-reports
+│   └── htmlcov
+└── tests
+    ├── __init__.py
+    ├── conftest.py
+    ├── consts.py
+    ├── fixtures
+    │   └── s3_client.py
+    └── unit_tests
+        ├── __init__.py
+        └── s3
+            ├── test__delete_objects.py
+            └── test__read_objects.py
+
+13 directories, 17 files
+
+
+
+# File: ./tests/conftest.py
+"""
+Register pytest plugins, fixtures, and hooks to be used during test execution.
+
+Docs: https://stackoverflow.com/questions/34466027/in-pytest-what-is-the-use-of-conftest-py-files
+"""
+
+import sys
+from pathlib import Path
+
+THIS_DIR = Path(__file__).parent
+TESTS_DIR_PARENT = (THIS_DIR / "..").resolve()
+
+# add the parent directory of tests/ to PYTHONPATH
+# so that we can use "from tests.<module> import ..." in our tests and fixtures
+sys.path.insert(0, str(TESTS_DIR_PARENT))
+
+# module import paths to python files containing fixtures
+pytest_plugins = [
+    # e.g. "tests/fixtures/example_fixture.py" should be registered as:
+    "tests.fixtures.s3_client",
+]
+
+
+
+# File: ./tests/unit_tests/s3/test__delete_objects.py
+from typing import Generator
+
+import boto3
+import pytest
+from files_api.s3.delete_objects import delete_s3_object
+from moto import mock_aws
+from mypy_boto3_s3 import S3Client
+
+BUCKET_NAME = "test-bucket"
+
+
+def test_delete_existing_s3_object(s3_client: S3Client):
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="testfile.txt", Body="test content")
+    assert delete_s3_object(BUCKET_NAME, "testfile.txt") is True
+    assert not s3_client.list_objects_v2(Bucket=BUCKET_NAME).get("Contents")
+
+
+# pylint: disable=unused-argument
+def test_delete_nonexistent_s3_object(s3_client: S3Client):
+    delete_s3_object(BUCKET_NAME, "nonexistent.txt")
+    assert delete_s3_object(BUCKET_NAME, "nonexistent.txt") is False
+
+
+
+# File: ./tests/unit_tests/s3/test__read_objects.py
+from typing import Generator
+
+import boto3
+import pytest
+from files_api.s3.read_objects import (
+    fetch_s3_objects,
+    fetch_s3_objects_using_page_token,
+    object_exists_in_s3,
+)
+from files_api.s3.write_objects import upload_s3_object
+from moto import mock_aws
+from mypy_boto3_s3 import S3Client
+
+BUCKET_NAME = "test-bucket"
+
+
+def test_upload_s3_object(s3_client: S3Client):
+    file_content = b"test content"
+    upload_s3_object(BUCKET_NAME, "testfile.txt", file_content)
+    response = s3_client.get_object(Bucket=BUCKET_NAME, Key="testfile.txt")
+    assert response["Body"].read() == file_content
+
+
+def test_object_exists_in_s3(s3_client: S3Client):
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="testfile.txt", Body="test content")
+    assert object_exists_in_s3(BUCKET_NAME, "testfile.txt") is True
+    assert object_exists_in_s3(BUCKET_NAME, "nonexistent.txt") is False
+
+
+def test_pagination(s3_client: S3Client):
+    # Upload 5 objects
+    for i in range(1, 6):
+        s3_client.put_object(Bucket=BUCKET_NAME, Key=f"file{i}.txt", Body=f"content {i}")
+
+    # Paginate 2 at a time
+    files, next_page_token = fetch_s3_objects(BUCKET_NAME, max_keys=2)
+    assert len(files) == 2
+    assert files[0]["Key"] == "file1.txt"
+    assert files[1]["Key"] == "file2.txt"
+
+    files, next_page_token = fetch_s3_objects_using_page_token(BUCKET_NAME, next_page_token, max_keys=2)
+    assert len(files) == 2
+    assert files[0]["Key"] == "file3.txt"
+    assert files[1]["Key"] == "file4.txt"
+
+    files, next_page_token = fetch_s3_objects_using_page_token(BUCKET_NAME, next_page_token, max_keys=2)
+    assert len(files) == 1
+    assert files[0]["Key"] == "file5.txt"
+    assert next_page_token is None
+
+
+def test_mixed_page_sizes(s3_client: S3Client):
+    # Upload 5 objects
+    for i in range(1, 6):
+        s3_client.put_object(Bucket=BUCKET_NAME, Key=f"file{i}.txt", Body=f"content {i}")
+
+    # Paginate with mixed page sizes
+    files, next_page_token = fetch_s3_objects(BUCKET_NAME, max_keys=3)
+    assert len(files) == 3
+    assert files[0]["Key"] == "file1.txt"
+    assert files[1]["Key"] == "file2.txt"
+    assert files[2]["Key"] == "file3.txt"
+
+    files, next_page_token = fetch_s3_objects_using_page_token(BUCKET_NAME, next_page_token, max_keys=1)
+    assert len(files) == 1
+    assert files[0]["Key"] == "file4.txt"
+
+    files, next_page_token = fetch_s3_objects_using_page_token(BUCKET_NAME, next_page_token, max_keys=2)
+    assert len(files) == 1
+    assert files[0]["Key"] == "file5.txt"
+    assert next_page_token is None
+
+
+def test_directory_queries(s3_client: S3Client):
+    # Upload nested objects
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="folder1/file1.txt", Body="content 1")
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="folder1/file2.txt", Body="content 2")
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="folder2/file3.txt", Body="content 3")
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="folder2/subfolder1/file4.txt", Body="content 4")
+    s3_client.put_object(Bucket=BUCKET_NAME, Key="file5.txt", Body="content 5")
+
+    # Query with prefix
+    files, next_page_token = fetch_s3_objects(BUCKET_NAME, prefix="folder1/")
+    assert len(files) == 2
+    assert files[0]["Key"] == "folder1/file1.txt"
+    assert files[1]["Key"] == "folder1/file2.txt"
+    assert next_page_token is None
+
+    # Query with prefix for nested folder
+    files, next_page_token = fetch_s3_objects(BUCKET_NAME, prefix="folder2/subfolder1/")
+    assert len(files) == 1
+    assert files[0]["Key"] == "folder2/subfolder1/file4.txt"
+    assert next_page_token is None
+
+    # Query with no prefix
+    files, next_page_token = fetch_s3_objects(BUCKET_NAME)
+    assert len(files) == 5
+    assert files[0]["Key"] == "file5.txt"
+    assert files[1]["Key"] == "folder1/file1.txt"
+    assert files[2]["Key"] == "folder1/file2.txt"
+    assert files[3]["Key"] == "folder2/file3.txt"
+    assert files[4]["Key"] == "folder2/subfolder1/file4.txt"
+    assert next_page_token is None
+
+
+
+# File: ./tests/unit_tests/__init__.py
+"""
+Unit tests for cookiecutter.repo_name.
+
+This folder ideally has a parallel folder structure with the src/files_api/ folder.
+
+In general, unit tests
+
+- should be fast and test a single function or class
+- should not depend on external resources (e.g., databases, network, etc.)
+"""
+
+
+
+# File: ./tests/__init__.py
+"""Automated tests for cloud-course-project."""
+
+
+
+# File: ./tests/consts.py
+"""Constant values used for tests."""
+
+from pathlib import Path
+
+THIS_DIR = Path(__file__).parent
+PROJECT_DIR = (THIS_DIR / "../").resolve()
+
+TEST_BUCKET_NAME = "test-bucket"
+
+
+
+# File: ./tests/fixtures/s3_client.py
+"""Example pytest fixture."""
+
+import os
+from typing import Generator
+from uuid import uuid4
+
+import boto3
+import pytest
+from moto import mock_aws
+from mypy_boto3_s3 import S3Client
+from tests.consts import TEST_BUCKET_NAME
+
+
+def point_away_from_aws():
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+
+@pytest.fixture
+def s3_client() -> Generator[S3Client, None, None]:
+    with mock_aws():
+        point_away_from_aws()
+
+        s3_client = boto3.client("s3")
+        s3_client.create_bucket(Bucket=TEST_BUCKET_NAME)
+
+        yield s3_client
+
+        # delete the bucket and its objects
+        objects = s3_client.list_objects_v2(Bucket=TEST_BUCKET_NAME).get("Contents", [])
+        if objects:
+            s3_client.delete_objects(
+                Bucket=TEST_BUCKET_NAME, Delete={"Objects": [{"Key": obj["Key"]} for obj in objects]}
+            )
+        s3_client.delete_bucket(Bucket=TEST_BUCKET_NAME)
+
+
+
+# File: ./src/files_api/s3/write_objects.py
+# In src/files_api/s3/write_objects.py
+from typing import Optional
+
+import boto3
+
+try:
+    from mypy_boto3_s3 import S3Client
+except ImportError:
+    S3Client = None
+
+
+def upload_s3_object(
+    bucket_name: str,
+    object_key: str,
+    file_content: bytes,
+    s3_client: Optional["S3Client"] = None,
+) -> None:
+    s3_client = s3_client or boto3.client("s3")
+    s3_client.put_object(Bucket=bucket_name, Key=object_key, Body=file_content)
+
+
+
+# File: ./src/files_api/s3/read_objects.py
+from typing import Optional
+
+import boto3
+
+try:
+    from mypy_boto3_s3 import S3Client
+    from mypy_boto3_s3.type_defs import (
+        ListObjectsV2OutputTypeDef,
+        ObjectTypeDef,
+    )
+except ImportError:
+    ...
+
+
+def object_exists_in_s3(bucket_name: str, object_key: str, s3_client: Optional["S3Client"] = None) -> bool:
+    """
+    Check if an object exists in the S3 bucket using head_object.
+
+    :param bucket_name: Name of the S3 bucket.
+    :param object_key: Key of the object to check.
+    :param s3_client: Optional S3 client to use. If not provided, a new client will be created.
+
+    :return: True if the object exists, False otherwise.
+    """
+    s3_client = s3_client or boto3.client("s3")
+    try:
+        s3_client.head_object(Bucket=bucket_name, Key=object_key)
+        return True
+    except s3_client.exceptions.ClientError as e:
+        error_code = e.response["Error"]["Code"]
+        if error_code == "404":
+            return False
+        else:
+            raise
+
+
+def fetch_s3_objects_using_page_token(
+    bucket_name: str,
+    continuation_token: str,
+    max_keys: Optional[int] = None,
+    s3_client: Optional["S3Client"] = None,
+) -> tuple[list["ObjectTypeDef"], Optional[str]]:
+    """
+    Fetch list of object keys and their metadata using a continuation token.
+
+    :param bucket_name: Name of the S3 bucket to list objects from.
+    :param continuation_token: Token for fetching the next page of results where the last page left off.
+    :param max_keys: Maximum number of keys to return within this page.
+    :param s3_client: Optional S3 client to use. If not provided, a new client will be created.
+
+    :return: Tuple of a list of objects and the next continuation token.
+        1. Possibly empty list of objects in the current page.
+        2. Next continuation token if there are more pages, otherwise None.
+    """
+    s3_client = s3_client or boto3.client("s3")
+    response: "ListObjectsV2OutputTypeDef" = s3_client.list_objects_v2(
+        Bucket=bucket_name,
+        ContinuationToken=continuation_token,
+        MaxKeys=max_keys,
+    )
+    files: list["ObjectTypeDef"] = response.get("Contents", [])
+    next_continuation_token: str | None = response.get("NextContinuationToken")
+
+    return files, next_continuation_token
+
+
+def fetch_s3_objects(
+    bucket_name: str,
+    prefix: Optional[str] = None,
+    max_keys: Optional[int] = None,
+    s3_client: Optional["S3Client"] = None,
+) -> tuple[list["ObjectTypeDef"], Optional[str]]:
+    """
+    Fetch list of object keys and their metadata.
+
+    :param bucket_name: Name of the S3 bucket to list objects from.
+    :param prefix: Prefix to filter objects by.
+    :param max_keys: Maximum number of keys to return within this page.
+    :param s3_client: Optional S3 client to use. If not provided, a new client will be created.
+
+    :return: Tuple of a list of objects and the next continuation token.
+        1. Possibly empty list of objects in the current page.
+        2. Next continuation token if there are more pages, otherwise None.
+    """
+    s3_client = s3_client or boto3.client("s3")
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix, MaxKeys=max_keys)
+    files: list["ObjectTypeDef"] = response.get("Contents", [])
+    next_page_token: str | None = response.get("NextContinuationToken")
+
+    return files, next_page_token
+
+
+
+# File: ./src/files_api/s3/__init__.py
+
+
+
+# File: ./src/files_api/s3/delete_objects.py
+from typing import Optional
+
+import boto3
+from botocore.exceptions import ClientError
+
+try:
+    from mypy_boto3_s3 import S3Client
+except ImportError:
+    S3Client = None
+
+
+def delete_s3_object(
+    bucket_name: str, object_key: str, s3_client: Optional["S3Client"] = None
+) -> bool:
+    """
+    Delete an object from the S3 bucket.
+
+    :param bucket_name: Name of the S3 bucket.
+    :param object_key: Key of the object to delete.
+    :param s3_client: Optional S3 client to use. If not provided, a new client will be created.
+
+    :return: True if the object was successfully deleted, False if the object was not found.
+    """
+    s3_client = s3_client or boto3.client("s3")
+    try:
+        s3_client.delete_object(Bucket=bucket_name, Key=object_key)
+        return True
+    except ClientError as e:
+        error_code = e.response["Error"]["Code"]
+        if error_code == "NoSuchKey":
+            return False
+        else:
+            raise
+
+
+
+# File: ./src/files_api/__init__.py
+"""learn_boto3."""
+
+
+
+# File: ./src/files_api/schemas/__init__.py
+
+
+
+# File: ./src/files_api/schemas/list_files.py
+from datetime import datetime
+from typing import (
+    List,
+    Optional,
+)
+
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+)
+
+DEFAULT_PAGE_SIZE = 10
+DEFAULT_DIRECTORY = ""
+
+
+class FileMetadata(BaseModel):
+    key: str
+    last_modified: datetime
+    size_bytes: int
+
+
+class FileListResponse(BaseModel):
+    files: List[FileMetadata]
+    next_page_token: Optional[str] = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "files": [
+                        {"key": "file1.txt", "last_modified": "2023-01-01T00:00:00Z", "size_bytes": 12345},
+                        {"key": "file2.txt", "last_modified": "2023-01-02T00:00:00Z", "size_bytes": 67890},
+                    ],
+                    "next_page_token": "some_token",
+                    "remaining_pages": 3,
+                }
+            ]
+        }
+    }
+
+
+class FileQueryParams(BaseModel):
+    page_size: Optional[int] = Field(DEFAULT_PAGE_SIZE, description="Number of files to return per page", example=5)
+    directory: Optional[str] = Field(DEFAULT_DIRECTORY, description="Directory to list files from", example="myfolder")
+    page_token: Optional[str] = Field(
+        None, description="Token for fetching the next page of results", example="some_token"
+    )
+
+    @model_validator(mode="before")
+    def check_mutually_exclusive(cls, values):
+        page_token = values.get("page_token")
+        directory = values.get("directory")
+        if page_token:
+            directory_is_default = directory == DEFAULT_DIRECTORY
+            if not directory_is_default:
+                raise ValueError("When page_token is provided, page_size must not be set.")
+        return values
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "summary": "With page_token",
+                    "description": "Fetches the next page using page_token.",
+                    "value": {"page_token": "some_token"},
+                },
+                {
+                    "summary": "With page_size only",
+                    "description": "Fetches files with specified page_size.",
+                    "value": {"page_size": 5},
+                },
+                {
+                    "summary": "With directory only",
+                    "description": "Fetches files from a specific directory.",
+                    "value": {"directory": "myfolder"},
+                },
+                {
+                    "summary": "With directory and page_size",
+                    "description": "Fetches files from a specific directory with specified page_size.",
+                    "value": {"directory": "myfolder", "page_size": 5},
+                },
+            ]
+        }
+    }
+
+
+
+# File: ./src/files_api/schemas.py
+
+
+
+# File: ./src/files_api/main.py
+import os
+from typing import Annotated
+
+from fastapi import (
+    Depends,
+    FastAPI,
+    Request,
+    status,
+)
+from fastapi.responses import JSONResponse
+from files_api.s3.list_objects import (
+    fetch_s3_objects,
+    fetch_s3_objects_using_page_token,
+)
+from files_api.schemas.list_files import (
+    FileListResponse,
+    FileMetadata,
+    FileQueryParams,
+)
+from pydantic import ValidationError
+
+APP = FastAPI(docs_url="/")
+
+
+BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "unset")
+
+
+@APP.get("/errors/")
+async def raise_error():
+    raise Exception("This is a test error.")
+
+
+@APP.get("/files/")
+async def list_files(query_params: Annotated[FileQueryParams, Depends()]) -> FileListResponse:
+    """
+    List files with pagination.
+
+    - **page_size**: Number of files to return per page. Ignored if `page_token` is provided.
+    - **directory**: Directory to list files from. Ignored if `page_token` is provided.
+    - **page_token**: Token for fetching the next page of results where the last page left off.
+      Respects `page_size`. Mutually exclusive with `directory`.
+
+    Each request will return a pagination token that can be used to fetch the next page of results.
+    """
+    if query_params.page_token:
+        files, next_page_token = fetch_s3_objects_using_page_token(
+            bucket_name=BUCKET_NAME,
+            continuation_token=query_params.page_token,
+            max_keys=query_params.page_size,
+        )
+    else:
+        files, next_page_token = fetch_s3_objects(
+            bucket_name=BUCKET_NAME,
+            prefix=query_params.directory,
+            max_keys=query_params.page_size,
+        )
+
+    file_metadata_objs = [
+        FileMetadata(
+            key=item["Key"],
+            last_modified=item["LastModified"],
+            size_bytes=item["Size"],
+        )
+        for item in files
+    ]
+    return FileListResponse(
+        files=file_metadata_objs,
+        next_page_token=next_page_token if next_page_token else None,
+    )
+
+
+# pylint: disable=unused-argument
+@APP.exception_handler(Exception)
+async def handle_errors_globally(request: Request, exc: Exception):
+    """Handle any raised exceptions that were not handled by a more specific exception handler."""
+    # TODO: log level with trace ID
+    print("exception stack trace:", str(exc))
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "message": "error",
+            "error_type": "500 Internal Server Error",
+            "errors": str(exc),
+        },
+    )
+
+
+# pylint: disable=unused-argument
+@APP.exception_handler(ValidationError)
+async def handle_custom_pydantic_validation_errors(request: Request, exc: ValidationError):
+    """Handle pydantic validation Errors that come from custom validators because FastAPI does not by default."""
+    errors = exc.errors()
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "message": "error",
+            "error_type": "422 Unprocessable Entity",
+            "errors": [err["msg"] for err in errors],
+        },
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(APP, host="0.0.0.0", port=3000)
+
+
+
+# File: ./src/files_api/routes/__init__.py
+
+
+
