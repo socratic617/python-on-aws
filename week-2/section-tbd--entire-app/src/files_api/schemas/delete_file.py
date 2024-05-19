@@ -1,11 +1,8 @@
-from pydantic import (
-    BaseModel,
-    Field,
-)
+from pydantic import BaseModel
 
 
 class DeleteFileResponse(BaseModel):
-    message: str = Field(..., example="File deleted successfully")
+    message: str
 
     model_config = {
         "json_schema_extra": {

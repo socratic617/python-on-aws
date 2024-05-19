@@ -1,5 +1,3 @@
-"""Models for GET /files/ ."""
-
 from datetime import datetime
 from typing import (
     List,
@@ -24,8 +22,7 @@ class FileMetadata(BaseModel):
     size_bytes: int
 
 
-# pylint: disable=missing-class-docstring
-class FileListResponse(BaseModel):  # noqa: D101
+class FileListResponse(BaseModel):
     files: List[FileMetadata]
     next_page_token: Optional[str] = None
 
@@ -45,12 +42,28 @@ class FileListResponse(BaseModel):  # noqa: D101
     }
 
 
-# pylint: disable=missing-class-docstring
-class FileQueryParams(BaseModel):  # noqa: D101
-    page_size: Optional[int] = Field(DEFAULT_PAGE_SIZE, description="Number of files to return per page", example=5)
-    directory: Optional[str] = Field(DEFAULT_DIRECTORY, description="Directory to list files from", example="myfolder")
+class FileQueryParams(BaseModel):
+    page_size: Optional[int] = Field(
+        DEFAULT_PAGE_SIZE,
+        json_schema_extra={
+            "description": "Number of files to return per page",
+            "minimum": 1,
+            "example": 5,
+        },
+    )
+    directory: Optional[str] = Field(
+        DEFAULT_DIRECTORY,
+        json_schema_extra={
+            "description": "Directory to list files from",
+            "example": "myfolder",
+        },
+    )
     page_token: Optional[str] = Field(
-        None, description="Token for fetching the next page of results", example="some_token"
+        None,
+        json_schema_extra={
+            "description": "Token for fetching the next page of results",
+            "example": "some_token",
+        },
     )
 
     # pylint: disable=no-self-argument

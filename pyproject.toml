@@ -29,6 +29,10 @@ ignore = [
   "D103",
   # D102: Missing docstring in public method
   "D102",
+  # D101: Missing docstring in public class
+  "D101",
+  # B008: Do not perform calls in argument defaults, used in `Depends(get_settings)`
+  "B008",
 ]
 exclude = ["venv"]
 max-line-length = 119
@@ -52,6 +56,8 @@ disable = [
   "import-error",
   "too-few-public-methods",
   "redefined-outer-name",
+  "missing-class-docstring",
+  "missing-module-docstring",
 ]
 
 [tool.ruff]

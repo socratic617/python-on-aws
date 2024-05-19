@@ -1,3 +1,5 @@
+"""Hello world example of using boto3 to write a file to S3."""
+
 import boto3
 
 try:

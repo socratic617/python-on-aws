@@ -60,7 +60,7 @@ def fetch_s3_object(
 def fetch_s3_objects_using_page_token(
     bucket_name: str,
     continuation_token: str,
-    max_keys: int = DEFAULT_MAX_KEYS,
+    max_keys: int | None = None,
     s3_client: Optional["S3Client"] = None,
 ) -> tuple[list["ObjectTypeDef"], Optional[str]]:
     """
@@ -79,7 +79,7 @@ def fetch_s3_objects_using_page_token(
     response: "ListObjectsV2OutputTypeDef" = s3_client.list_objects_v2(
         Bucket=bucket_name,
         ContinuationToken=continuation_token,
-        MaxKeys=max_keys,
+        MaxKeys=max_keys or DEFAULT_MAX_KEYS,
     )
     files: list["ObjectTypeDef"] = response.get("Contents", [])
     next_continuation_token: str | None = response.get("NextContinuationToken")

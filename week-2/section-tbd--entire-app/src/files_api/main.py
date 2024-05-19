@@ -13,7 +13,12 @@ from pydantic import ValidationError
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
 
-    app = FastAPI(docs_url="/")
+    app = FastAPI(
+        docs_url="/",
+        title="Files API",
+        version="1",
+        summary="API for storing and retrieving files of arbitrary types.",
+    )
 
     # Store settings in the app instance for access in routes
     app.state.settings = settings

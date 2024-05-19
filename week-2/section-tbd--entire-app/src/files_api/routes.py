@@ -1,13 +1,15 @@
-import boto3
-import botocore
 from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
     Request,
+    UploadFile,
     status,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import (
+    JSONResponse,
+    StreamingResponse,
+)
 from files_api.s3.delete_objects import delete_s3_object
 from files_api.s3.read_objects import (
     fetch_s3_object,
@@ -20,27 +22,23 @@ from files_api.schemas.delete_file import DeleteFileResponse
 from files_api.schemas.list_files import (
     FileListResponse,
     FileMetadata,
+    FileQueryParams,
 )
-from files_api.schemas.read_files import FileQueryParams
-from files_api.schemas.write_file import FileUploadResponse
 from files_api.settings import Settings
-from pydantic import BaseModel
 
-ROUTER = APIRouter()
+ROUTER = APIRouter(tags=["Files"])
 
 
 def get_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
-@ROUTER.get("/files/", response_model=FileListResponse)
+@ROUTER.get("/files/")
 async def list_files(
-    query_params: FileQueryParams = Depends(),
-    settings: Settings = Depends(get_settings),
-):
-    """
-    List files with pagination.
-    """
+    query_params: FileQueryParams = Depends(),  # noqa: B008
+    settings: Settings = Depends(get_settings),  # noqa: B008
+) -> FileListResponse:
+    """List files with pagination."""
     bucket_name = settings.s3_bucket_name
 
     if query_params.page_token:
@@ -67,10 +65,18 @@ async def list_files(
     return FileListResponse(files=file_metadata_objs, next_page_token=next_page_token if next_page_token else None)
 
 
-@ROUTER.get("/files/{file_path}")
+@ROUTER.get(
+    "/files/{file_path:path}",
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "File not found",
+            "content": {"application/json": {"example": {"detail": "File not found: path/to/file"}}},
+        },
+    },
+)
 async def get_file(
     file_path: str,
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_settings),  # noqa: B008
 ):
     """Retrieve a file."""
     bucket_name = settings.s3_bucket_name
@@ -85,28 +91,63 @@ async def get_file(
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {file_path}")
 
 
-@ROUTER.post("/files/{file_path}")
+@ROUTER.post(
+    "/files/{file_path:path}",
+    responses={
+        status.HTTP_200_OK: {
+            "description": "File overwritten successfully",
+            "content": {"application/json": {"example": {"message": "File overwritten: path/to/file"}}},
+        },
+        status.HTTP_201_CREATED: {
+            "description": "File uploaded successfully",
+            "content": {"application/json": {"example": {"message": "File uploaded: path/to/file"}}},
+        },
+    },
+)
 async def upload_file(
     file_path: str,
-    file: bytes = Depends(),
-    settings: Settings = Depends(get_settings),
-) -> FileUploadResponse:
+    file: UploadFile,
+    settings: Settings = Depends(get_settings),  # noqa: B008
+):
     """Upload a file."""
+    file_bytes = await file.read()
+
+    object_already_exists_at_path = object_exists_in_s3(bucket_name=settings.s3_bucket_name, object_key=file_path)
+    if object_already_exists_at_path:
+        response = JSONResponse(
+            content={"message": f"File overwritten: {file_path}"},
+            status_code=status.HTTP_200_OK,
+        )
+    else:
+        response = JSONResponse(
+            content={"message": f"File uploaded: {file_path}"},
+            status_code=status.HTTP_201_CREATED,
+        )
+
     upload_s3_object(
         bucket_name=settings.s3_bucket_name,
         object_key=file_path,
-        file_content=file,
+        file_content=file_bytes,
+        content_type=file.content_type,
     )
-    return FileUploadResponse(message=f"File uploaded: {file_path}")
+
+    return response
 
 
-@ROUTER.delete("/files/{file_path}")
+@ROUTER.delete(
+    "/files/{file_path:path}",
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "File not found",
+            "content": {"application/json": {"example": {"detail": "File not found: path/to/file"}}},
+        }
+    },
+)
 async def delete_file(
     file_path: str,
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> DeleteFileResponse:
     """Delete a file."""
-
     if object_exists_in_s3(bucket_name=settings.s3_bucket_name, object_key=file_path):
         delete_s3_object(bucket_name=settings.s3_bucket_name, object_key=file_path)
         return DeleteFileResponse(message=f"Deleted file: {file_path}")
