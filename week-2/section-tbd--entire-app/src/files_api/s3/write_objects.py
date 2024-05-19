@@ -1,4 +1,5 @@
-# In src/files_api/s3/write_objects.py
+"""Functions for writing objects from an S3 bucket--the "C" and "U" in CRUD."""
+
 from typing import Optional
 
 import boto3

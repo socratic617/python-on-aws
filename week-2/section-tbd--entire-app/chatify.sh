@@ -88,4 +88,3 @@ main
 echo "Copied to clipboard 📋"
 
 cat "$OUTPUT_FILE" | pbcopy
-

@@ -1,10 +1,4 @@
-"""Models for GET /files/ ."""
-
-from datetime import datetime
-from typing import (
-    List,
-    Optional,
-)
+from typing import Optional
 
 from pydantic import (
     BaseModel,
@@ -16,35 +10,6 @@ DEFAULT_PAGE_SIZE = 10
 DEFAULT_DIRECTORY = ""
 
 
-class FileMetadata(BaseModel):
-    """List item for a file returned by GET /files/."""
-
-    key: str
-    last_modified: datetime
-    size_bytes: int
-
-
-# pylint: disable=missing-class-docstring
-class FileListResponse(BaseModel):  # noqa: D101
-    files: List[FileMetadata]
-    next_page_token: Optional[str] = None
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "files": [
-                        {"key": "file1.txt", "last_modified": "2023-01-01T00:00:00Z", "size_bytes": 12345},
-                        {"key": "file2.txt", "last_modified": "2023-01-02T00:00:00Z", "size_bytes": 67890},
-                    ],
-                    "next_page_token": "some_token",
-                    "remaining_pages": 3,
-                }
-            ]
-        }
-    }
-
-
 # pylint: disable=missing-class-docstring
 class FileQueryParams(BaseModel):  # noqa: D101
     page_size: Optional[int] = Field(DEFAULT_PAGE_SIZE, description="Number of files to return per page", example=5)
@@ -53,7 +18,6 @@ class FileQueryParams(BaseModel):  # noqa: D101
         None, description="Token for fetching the next page of results", example="some_token"
     )
 
-    # pylint: disable=no-self-argument
     @model_validator(mode="before")
     def check_mutually_exclusive(cls, values):
         page_token = values.get("page_token")
@@ -80,12 +44,12 @@ class FileQueryParams(BaseModel):  # noqa: D101
                 {
                     "summary": "With directory only",
                     "description": "Fetches files from a specific directory.",
-                    "value": {"directory": "my/folder"},
+                    "value": {"directory": "myfolder"},
                 },
                 {
                     "summary": "With directory and page_size",
                     "description": "Fetches files from a specific directory with specified page_size.",
-                    "value": {"directory": "my/folder", "page_size": 5},
+                    "value": {"directory": "myfolder", "page_size": 5},
                 },
             ]
         }

@@ -1,3 +1,5 @@
+"""Functions for deleting objects from an S3 bucket--the "D" in CRUD."""
+
 from typing import Optional
 
 import boto3

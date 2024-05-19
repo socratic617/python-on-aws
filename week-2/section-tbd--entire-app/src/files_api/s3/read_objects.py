@@ -1,3 +1,5 @@
+"""Functions for reading objects from an S3 bucket--the "R" in CRUD."""
+
 from typing import Optional
 
 import boto3
@@ -5,11 +7,14 @@ import boto3
 try:
     from mypy_boto3_s3 import S3Client
     from mypy_boto3_s3.type_defs import (
+        GetObjectOutputTypeDef,
         ListObjectsV2OutputTypeDef,
         ObjectTypeDef,
     )
 except ImportError:
     ...
+
+DEFAULT_MAX_KEYS = 1_000
 
 
 def object_exists_in_s3(bucket_name: str, object_key: str, s3_client: Optional["S3Client"] = None) -> bool:
@@ -26,18 +31,36 @@ def object_exists_in_s3(bucket_name: str, object_key: str, s3_client: Optional["
     try:
         s3_client.head_object(Bucket=bucket_name, Key=object_key)
         return True
-    except s3_client.exceptions.ClientError as e:
-        error_code = e.response["Error"]["Code"]
+    except s3_client.exceptions.ClientError as err:
+        error_code = err.response["Error"]["Code"]
         if error_code == "404":
             return False
-        else:
-            raise
+        raise
+
+
+def fetch_s3_object(
+    bucket_name: str,
+    object_key: str,
+    s3_client: Optional["S3Client"] = None,
+) -> "GetObjectOutputTypeDef":
+    """
+    Fetch metadata of an object in the S3 bucket.
+
+    :param bucket_name: Name of the S3 bucket.
+    :param object_key: Key of the object to fetch.
+    :param s3_client: Optional S3 client to use. If not provided, a new client will be created.
+
+    :return: Metadata of the object.
+    """
+    s3_client = s3_client or boto3.client("s3")
+    response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
+    return response
 
 
 def fetch_s3_objects_using_page_token(
     bucket_name: str,
     continuation_token: str,
-    max_keys: int = 1_000,
+    max_keys: int = DEFAULT_MAX_KEYS,
     s3_client: Optional["S3Client"] = None,
 ) -> tuple[list["ObjectTypeDef"], Optional[str]]:
     """
@@ -64,10 +87,10 @@ def fetch_s3_objects_using_page_token(
     return files, next_continuation_token
 
 
-def fetch_s3_objects(
+def fetch_s3_objects_metadata(
     bucket_name: str,
     prefix: Optional[str] = None,
-    max_keys: Optional[int] = 1_000,
+    max_keys: Optional[int] = DEFAULT_MAX_KEYS,
     s3_client: Optional["S3Client"] = None,
 ) -> tuple[list["ObjectTypeDef"], Optional[str]]:
     """
