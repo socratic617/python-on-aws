@@ -1,8 +1,14 @@
-# Homework Assignment: Implement Tests for S3 Object Operations
+# Lab: Write tests for `boto3` scripts
 
 ## Objective
 
-In this assignment, you will complete the implementation of unit tests for a set of functions that interact with AWS S3. This will help you understand how to use the `moto` library to mock AWS services and how to use pytest fixtures to set up your test environment.
+In this lab, you will complete the implementation of unit tests for a set of functions that interact with AWS S3.
+
+This will help you gain experience
+
+- Using the `moto` library to mock calls to AWS
+- Using `moto` with pytest fixtures
+- Safely testing scripts that interact with AWS
 
 ## Project Structure
 
@@ -82,13 +88,6 @@ def test_upload_s3_object(s3_client: S3Client):
     assert response["Body"].read() == file_content
 ```
 
-## Learning Goals
-
-Gain experience
-
-- Using the `moto` library to mock calls to AWS
-- Using `moto` with pytest fixtures
-- Safely testing scripts that interact with AWS
 
 ## Tips for testing
 
@@ -134,4 +133,3 @@ To set this up
 
 If you have trouble, VS Code can show you the error logs. The issue typically comes from the underlying
 `pytest ./tests/` command failing for some reason. The logs are helpful for identifying the cause of this.
-
