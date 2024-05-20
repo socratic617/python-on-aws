@@ -101,6 +101,7 @@ repos:
       - id: autoflake
         args:
           - --in-place
-          - --remove-all-unused-imports
-          - --remove-unused-variable
+          # some imports are intentionally unused in un-filled-out homework assignment files
+          # - --remove-all-unused-imports
+          # - --remove-unused-variable
           - --ignore-init-module-imports

@@ -85,6 +85,5 @@ main() {
 # Run the main function
 main
 
-echo "Copied to clipboard 📋"
-
 cat "$OUTPUT_FILE" | pbcopy
+echo "Copied to clipboard 📋"
