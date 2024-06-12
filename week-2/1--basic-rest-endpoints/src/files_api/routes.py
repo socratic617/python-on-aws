@@ -33,7 +33,7 @@ def get_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
-@ROUTER.get("/files/")
+@ROUTER.get("/files")
 async def list_files(
     query_params: FileQueryParams = Depends(),  # noqa: B008
     settings: Settings = Depends(get_settings),  # noqa: B008
