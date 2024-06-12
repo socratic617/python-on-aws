@@ -26,6 +26,7 @@ api = ["uvicorn"]
 stubs = ["boto3-stubs[s3]"]
 notebooks = ["jupyterlab", "ipykernel", "rich"]
 test = ["pytest", "pytest-cov", "moto[s3]"]
+mocked_aws_server = ["moto[server]"]
 release = ["build", "twine"]
 static-code-qa = [
     "pre-commit",
@@ -42,7 +43,9 @@ static-code-qa = [
 # - automatically apply formatting
 # - show enhanced autocompletion for stubs libraries
 # See .vscode/settings.json to see how VS Code is configured to use these tools
-dev = ["files-api[api,test,release,static-code-qa,stubs,notebooks]"]
+dev = [
+    "files-api[api,test,mocked_aws_server,release,static-code-qa,stubs,notebooks]",
+]
 
 [build-system]
 # Minimum requirements for the build system to execute.

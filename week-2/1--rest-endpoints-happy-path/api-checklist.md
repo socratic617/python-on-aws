@@ -29,10 +29,6 @@
 
 - [ ] Use resource-oriented design, i.e. nouns for URLs and plural nouns for collections of resources. (e.g. `/users`, `/users/1`)
 
-## 12-factor app
-
-- [ ] Store config in the environment (environment variables)
-
 ## Extra
 
 - [ ] Rudimentary data validation and schema documentation (using Pydantic models). A later assignment will focus more in-depth on data validation. For now, just create basic pydantic models.

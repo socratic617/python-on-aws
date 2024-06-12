@@ -5,20 +5,38 @@ In this exercise, you will implement the REST API endpoints for the Files API.
 Do not worry about
 
 - documentation (the OpenAPI schema)
-- error handling, error response status codes, or data validation, just do the "happy path"
+- error handling, error response status codes, or data validation, just do the "happy path" AKA assume nothing goes wrong
+- using `camelCase` in request/response payloads. `snake_case` is fine for now.
 - logging
 - versioning
 
-We will implement those in later assignments.
+We will come back and implement these in later assignments.
 
 ## Assignment
 
-There are 2 main parts to this assignment:
+There are 3 main parts to this assignment:
 
 1. Implement the endpoints as shown below by their example requests and responses.
 2. For each endpoint, implement the full checklist laid out in [`./api-checklist.md`](./api-checklist.md).
+3. Test the happy path for each endpoint
 
 Subsequent assignments will build on this one, adding more polish in their own checklist items.
+
+## Assignment format
+
+Fill in these files
+
+```
+hw/
+├── src
+│   └── files_api
+│       └── main.py          # fill in
+└── tests
+    ├── fixtures
+    │   └── mocked_aws.py    # provided, you may edit
+    └── unit_tests
+        └── test__main.py    # fill in
+```
 
 ## Endpoints (implement these)
 
@@ -61,6 +79,7 @@ HTTP/1.1 201 Created
 Content-Type: application/json
 
 {
+  "filePath": "myfolder/file1.txt",
   "message": "New file uploaded: /path/to/file"
 }
 ```
@@ -87,12 +106,12 @@ Content-Type: application/json
 {
   "files": [
     {
-      "key": "/myfolder/file1.txt",
+      "filePath": "myfolder/file1.txt",
       "lastModified": "2023-01-01T00:00:00Z",
       "sizeBytes": 12345
     },
     {
-      "key": "/myfolder/file2.txt",
+      "filePath": "myfolder/file2.txt",
       "lastModified": "2023-01-02T00:00:00Z",
       "sizeBytes": 67890
     }
@@ -106,7 +125,7 @@ Content-Type: application/json
 - **Endpoint**: `GET /files/{filePath}`
 - **Path Parameters**:
   - `filePath` (required, string)
-- **Response**: Returns the file content with the appropriate MIME type or a 404 error if not found.
+- **Response**: Returns the file content with the appropriate MIME type or a `404 Not Found` error if not found.
 
 #### Example Request:
 ```bash
@@ -137,7 +156,7 @@ Content-Type: application/json
 - **Endpoint**: `HEAD /files/{filePath}`
 - **Path Parameters**:
   - `filePath` (required, string)
-- **Response**: Returns the file metadata or a 404 error if not found.
+- **Response**: Returns the file metadata or a `404 Not Found` error if not found.
 
 #### Example Request:
 ```bash
@@ -156,18 +175,13 @@ Last-Modified: 2023-01-01T00:00:00Z
 #### Example Error Response (optional for this assignment):
 ```bash
 HTTP/1.1 404 Not Found
-Content-Type: application/json
-
-{
-  "detail": "File not found: /myfolder/file1.txt"
-}
 ```
 
 ### 5. Delete File
 - **Endpoint**: `DELETE /files/{filePath}`
 - **Path Parameters**:
   - `filePath` (required, string)
-- **Response**: Return a 200 status code on successful deletion, or a 404 status code if the file is not found.
+- **Response**: Return a `204 No Content` status code on successful deletion, or a `404 Not Found` status code if the file is not found.
 
 #### Example Request:
 ```bash
@@ -177,20 +191,10 @@ Host: api.example.com
 
 #### Example Response:
 ```bash
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "message": "File deleted successfully"
-}
+HTTP/1.1 204 No Content
 ```
 
 #### Example Error Response (optional for this assignment):
 ```bash
 HTTP/1.1 404 Not Found
-Content-Type: application/json
-
-{
-  "detail": "File not found: /myfolder/file1.txt"
-}
 ```
