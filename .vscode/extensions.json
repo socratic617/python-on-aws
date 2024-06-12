@@ -34,7 +34,5 @@
         "mushan.vscode-paste-image",
         // autocompletion for file paths
         "christian-kohler.path-intellisense",
-        // jump to definition of pytest fixtures
-        "nickmillerdev.pytest-fixtures",
     ]
 }

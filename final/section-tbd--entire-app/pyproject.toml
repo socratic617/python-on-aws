@@ -9,7 +9,13 @@ authors = [{ name = "<your name>", email = "some-email@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.7"
 license = { text = "MIT" }
-dependencies = ["boto3", "fastapi-slim", "pydantic>=2", "pydantic-settings"]
+dependencies = [
+    "boto3",
+    "fastapi-slim",
+    "pydantic>=2",
+    "pydantic-settings",
+    "python-multipart",
+]
 classifiers = ["Programming Language :: Python :: 3"]
 keywords = ["one", "two"]
 
@@ -26,6 +32,7 @@ stubs = ["boto3-stubs[s3]"]
 notebooks = ["jupyterlab", "ipykernel", "rich"]
 test = ["pytest", "pytest-cov", "moto[s3]"]
 release = ["build", "twine"]
+asgi = ["uvicorn"]
 static-code-qa = [
     "pre-commit",
     "pylint",
@@ -41,7 +48,7 @@ static-code-qa = [
 # - automatically apply formatting
 # - show enhanced autocompletion for stubs libraries
 # See .vscode/settings.json to see how VS Code is configured to use these tools
-dev = ["files-api[test,release,static-code-qa,stubs,notebooks]"]
+dev = ["files-api[test,release,static-code-qa,stubs,notebooks,asgi]"]
 
 [build-system]
 # Minimum requirements for the build system to execute.
