@@ -9,16 +9,20 @@ from files_api.s3.read_objects import (
 from tests.consts import TEST_BUCKET_NAME
 
 
-def test_object_exists_in_s3(s3_client: S3Client):
+# pylint: disable=unused-argument
+def test_object_exists_in_s3(mocked_aws):
     """Assert that `object_exists_in_s3` returns the correct value when an object is or isn't present."""
+    s3_client = boto3.client("s3")
     s3_client.put_object(Bucket=TEST_BUCKET_NAME, Key="testfile.txt", Body="test content")
     assert object_exists_in_s3(TEST_BUCKET_NAME, "testfile.txt") is True
     assert object_exists_in_s3(TEST_BUCKET_NAME, "nonexistent.txt") is False
 
 
-def test_pagination(s3_client: S3Client):  # noqa: R701
+# pylint: disable=unused-argument
+def test_pagination(mocked_aws):  # noqa: R701
     """Assert that pagination works correctly."""
     # Upload 5 objects
+    s3_client = boto3.client("s3")
     for i in range(1, 6):
         s3_client.put_object(Bucket=TEST_BUCKET_NAME, Key=f"file{i}.txt", Body=f"content {i}")
 
@@ -39,9 +43,11 @@ def test_pagination(s3_client: S3Client):  # noqa: R701
     assert next_page_token is None
 
 
-def test_mixed_page_sizes(s3_client: S3Client):  # noqa: R701 - too complex
+# pylint: disable=unused-argument
+def test_mixed_page_sizes(mocked_aws):  # noqa: R701 - too complex
     """Assert that pagination works correctly for pages of differing sizes."""
     # Upload 5 objects
+    s3_client = boto3.client("s3")
     for i in [1, 2, 3, 4, 5]:
         s3_client.put_object(Bucket=TEST_BUCKET_NAME, Key=f"file{i}.txt", Body=f"content {i}")
 
@@ -62,9 +68,11 @@ def test_mixed_page_sizes(s3_client: S3Client):  # noqa: R701 - too complex
     assert next_page_token is None
 
 
-def test_directory_queries(s3_client: S3Client):  # noqa: R701 - too complex
+# pylint: disable=unused-argument
+def test_directory_queries(mocked_aws):  # noqa: R701 - too complex
     """Assert that queries with prefixes work correctly with various directory prefixes on object keys."""
     # Upload nested objects
+    s3_client = boto3.client("s3")
     s3_client.put_object(Bucket=TEST_BUCKET_NAME, Key="folder1/file1.txt", Body="content 1")
     s3_client.put_object(Bucket=TEST_BUCKET_NAME, Key="folder1/file2.txt", Body="content 2")
     s3_client.put_object(Bucket=TEST_BUCKET_NAME, Key="folder2/file3.txt", Body="content 3")
