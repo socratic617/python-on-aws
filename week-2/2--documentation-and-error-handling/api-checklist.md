@@ -24,6 +24,7 @@ Use OpenAPI (formerly Swagger) to document your API. Include:
 
 ## Extra
 
-- [ ] Do data validation / sanitation on the server side (think Pydantic models)
+- [ ] Do data validation / sanitation on the server side (Pydantic models are an excellent way to do this)
+  - [ ] Think through what data validation is necessary for each endpoint, e.g. valid ranges, mutually exclusive parameters, regex patterns (such as for an email or IP address), etc.
 - [ ] Implement unit tests from the perspective of a client that is unaware of the server's implementation details
 

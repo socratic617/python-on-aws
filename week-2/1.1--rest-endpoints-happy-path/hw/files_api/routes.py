@@ -56,7 +56,7 @@ async def list_files(
 
     file_metadata_objs = [
         FileMetadata(
-            key=item["Key"],
+            filePath=item["Key"],
             last_modified=item["LastModified"],
             size_bytes=item["Size"],
         )

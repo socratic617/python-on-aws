@@ -17,7 +17,7 @@ DEFAULT_DIRECTORY = ""
 class FileMetadata(BaseModel):
     """List item for a file returned by GET /files/."""
 
-    key: str
+    filePath: str
     last_modified: datetime
     size_bytes: int
 
