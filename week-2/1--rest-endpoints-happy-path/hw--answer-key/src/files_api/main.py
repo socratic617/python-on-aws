@@ -37,19 +37,19 @@ APP = FastAPI()
 
 # read (cRud)
 class FileMetadata(BaseModel):
-    filePath: str
+    file_path: str
     last_modified: datetime
     size_bytes: int
 
 
 # read (cRud)
-class FileListResponse(BaseModel):
+class GetFilesResponse(BaseModel):
     files: List[FileMetadata]
     next_page_token: Optional[str]
 
 
 # read (cRud)
-class FileQueryParams(BaseModel):
+class GetFilesQueryParams(BaseModel):
     page_size: int = 10
     directory: Optional[str] = ""
     page_token: Optional[str] = None
@@ -61,22 +61,22 @@ class DeleteFileResponse(BaseModel):
 
 
 # create/update (CrUd)
-class UploadFileResponse(BaseModel):
-    filePath: str
+class PutFileResponse(BaseModel):
+    file_path: str
     message: str
 
 
-@APP.put("/files/{file_path:path}", response_model=UploadFileResponse)
-async def upload_file(file_path: str, file: UploadFile, response: Response):
+@APP.put("/files/{file_path:path}")
+async def upload_file(file_path: str, file: UploadFile, response: Response) -> PutFileResponse:
     """Upload a file."""
     file_bytes = await file.read()
 
     object_already_exists_at_path = object_exists_in_s3(S3_BUCKET_NAME, object_key=file_path)
     if object_already_exists_at_path:
-        message = f"File overwritten: /{file_path}"
+        message = f"Existing file updated at path: /{file_path}"
         response.status_code = status.HTTP_200_OK
     else:
-        message = f"File uploaded: /{file_path}"
+        message = f"New file uploaded at path: /{file_path}"
         response.status_code = status.HTTP_201_CREATED
 
     upload_s3_object(
@@ -86,13 +86,13 @@ async def upload_file(file_path: str, file: UploadFile, response: Response):
         content_type=file.content_type,
     )
 
-    return UploadFileResponse(filePath=f"{file_path}", message=message)
+    return PutFileResponse(file_path=f"{file_path}", message=message)
 
 
 @APP.get("/files")
 async def list_files(
-    query_params: FileQueryParams = Depends(),  # noqa: B008
-) -> FileListResponse:
+    query_params: GetFilesQueryParams = Depends(),  # noqa: B008
+) -> GetFilesResponse:
     """List files with pagination."""
     if query_params.page_token:
         files, next_page_token = fetch_s3_objects_using_page_token(
@@ -109,13 +109,13 @@ async def list_files(
 
     file_metadata_objs = [
         FileMetadata(
-            filePath=f"{item['Key']}",
+            file_path=f"{item['Key']}",
             last_modified=item["LastModified"],
             size_bytes=item["Size"],
         )
         for item in files
     ]
-    return FileListResponse(files=file_metadata_objs, next_page_token=next_page_token if next_page_token else None)
+    return GetFilesResponse(files=file_metadata_objs, next_page_token=next_page_token if next_page_token else None)
 
 
 @APP.head("/files/{file_path:path}")

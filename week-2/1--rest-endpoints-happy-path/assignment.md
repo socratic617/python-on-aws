@@ -1,4 +1,4 @@
-# Assignment: Implement the "happy path" for Files API Endpoints
+# Lab: Implement the "happy path" for Files API Endpoints
 
 In this exercise, you will implement the REST API endpoints for the Files API.
 
@@ -59,27 +59,54 @@ hw/
 > match with a MIME type of `text/csv` in the `Content-Type` header, and therefore implies that the user
 > can never request that the file be delivered in another format via `Accept:`.
 
-## Endpoints and Schemas Summary
+## Files API Endpoints Specifications
 
 ### 1. Upload or Overwrite File
-- **Endpoint**: `PUT /files/{filePath}`
-- **Path Parameters**:
-  - `filePath` (required, string)
-- **Request Body**: Accept a file in the request body as binary data.
-- **Response**: Return 
-  - a `201 Created` status code on successful created file (where no file existed before)
-  - a `204 No Content` status code on successful overwrite of an existing file
 
-#### Example Request:
+#### Endpoint
+
+```
+PUT /files/{filePath}
+```
+
+#### Request
+
+##### Path Parameters
+- `filePath` (required, string): The path of the file to be uploaded or overwritten.
+
+##### Query Parameters
+- None
+
+##### Request Body
+- Accepts a file in the request body as binary data.
+
+##### Notable Request Headers
+- `Content-Type: application/octet-stream` - The MIME type of the file being uploaded, e.g. `text/plain`, `image/jpeg`, etc.
+
+##### Example Request
 ```bash
 PUT /files/myfolder/file1.txt HTTP/1.1
 Host: api.example.com
-Content-Type: application/octet-stream
+Content-Type: text/plain
 
 (file content here)
 ```
 
-#### Example Response:
+#### Response
+
+##### Status Codes
+- `201 Created`: Returned on successful creation of a new file (where no file existed before).
+- `200 OK`: Returned on successful overwrite of an existing file.
+
+##### Notable Response Headers
+- None
+
+##### Response Payload (for 201 Created)
+- JSON object containing:
+  - `filePath` (string): The path of the uploaded file.
+  - `message` (string): A message indicating that a new file was uploaded.
+
+##### Example Response (201 Created)
 ```bash
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -91,20 +118,52 @@ Content-Type: application/json
 ```
 
 ### 2. List Files
-- **Endpoint**: `GET /files`
-- **Query Parameters**:
-  - `pageSize` (optional, integer, default: 10)
-  - `directory` (optional, string)
-  - `pageToken` (optional, string)
-- **Response**: JSON with a list of files and pagination tokens.
 
-#### Example Request:
+#### Endpoint
+```
+GET /files
+```
+
+#### Request
+
+##### Path Parameters
+- None
+
+##### Query Parameters
+- `pageSize` (optional, integer, default: 10): The number of files to return per page.
+- `directory` (optional, string): The directory to list files from.
+- `pageToken` (optional, string): The token for the next page of results.
+
+##### Request Body
+- None
+
+##### Notable Request Headers
+- None
+
+##### Example Request
 ```bash
 GET /files?pageSize=5&directory=myfolder&pageToken=abc123 HTTP/1.1
 Host: api.example.com
 ```
 
-#### Example Response:
+#### Response
+
+##### Status Codes
+- `200 OK`: Returned on successful retrieval of file list.
+
+##### Notable Response Headers
+- None
+
+##### Response Payload
+- JSON object containing:
+  - `files` (array): List of file metadata objects, each containing:
+    - `filePath` (string): The path of the file.
+    - `lastModified` (string): The last modified date of the file.
+    - `sizeBytes` (integer): The size of the file in bytes.
+  - `nextPageToken` (string): The token for the next page of results.
+  - `remainingPages` (integer): The number of remaining pages.
+
+##### Example Response
 ```bash
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -128,18 +187,46 @@ Content-Type: application/json
 ```
 
 ### 3. Get File
-- **Endpoint**: `GET /files/{filePath}`
-- **Path Parameters**:
-  - `filePath` (required, string)
-- **Response**: Returns the file content with the appropriate MIME type or a `404 Not Found` error if not found.
 
-#### Example Request:
+#### Endpoint
+```
+GET /files/{filePath}
+```
+
+#### Request
+
+##### Path Parameters
+- `filePath` (required, string): The path of the file to retrieve.
+
+##### Query Parameters
+- None
+
+##### Request Body
+- None
+
+##### Notable Request Headers
+- None
+
+##### Example Request
 ```bash
 GET /files/myfolder/file1.txt HTTP/1.1
 Host: api.example.com
 ```
 
-#### Example Response:
+#### Response
+
+##### Status Codes
+- `200 OK`: Returned on successful retrieval of the file.
+- `404 Not Found`: Returned if the file is not found.
+
+##### Notable Response Headers
+- `Content-Type`: The MIME type of the file.
+- `Content-Length`: The size of the file in bytes.
+
+##### Response Payload (for 200 OK)
+- Returns the file content with the appropriate MIME type.
+
+##### Example Response (200 OK)
 ```bash
 HTTP/1.1 200 OK
 Content-Type: text/plain
@@ -148,34 +235,48 @@ Content-Length: 12345
 (file content here)
 ```
 
-#### Example Error Response (optional for this assignment):
-```bash
-HTTP/1.1 404 Not Found
-Content-Type: application/json
+### 4. Get File Metadata
 
-{
-  "detail": "File not found: /myfolder/file1.txt"
-}
+#### Endpoint
+```
+HEAD /files/{filePath}
 ```
 
-### 4. Get File Metadata
-- **Endpoint**: `HEAD /files/{filePath}`
-- **Path Parameters**:
-  - `filePath` (required, string)
-- **Response**:
-  - Returns the file metadata or a `404 Not Found` error if not found.
-  - Headers
-    - Include the correct Mime type in the `Content-Type` header.
-    - Include the `Content-Length` header with the file size in bytes.
-    - Include the `Last-Modified` header with the last modified date of the file.
+#### Request
 
-#### Example Request:
+##### Path Parameters
+- `filePath` (required, string): The path of the file to retrieve metadata for.
+
+##### Query Parameters
+- None
+
+##### Request Body
+- None
+
+##### Notable Request Headers
+- None
+
+##### Example Request
 ```bash
 HEAD /files/myfolder/file1.txt HTTP/1.1
 Host: api.example.com
 ```
 
-#### Example Response:
+#### Response
+
+##### Status Codes
+- `200 OK`: Returned on successful retrieval of the file metadata.
+- `404 Not Found`: Returned if the file is not found.
+
+##### Notable Response Headers
+- `Content-Type`: The MIME type of the file.
+- `Content-Length`: The size of the file in bytes.
+- `Last-Modified`: The last modified date of the file.
+
+##### Response Payload
+- HEAD requests must not return a response payload.
+
+##### Example Response (200 OK)
 ```bash
 HTTP/1.1 200 OK
 Content-Type: text/plain
@@ -183,29 +284,46 @@ Content-Length: 12345
 Last-Modified: 2023-01-01T00:00:00Z
 ```
 
-#### Example Error Response (optional for this assignment):
-```bash
-HTTP/1.1 404 Not Found
+### 5. Delete File
+
+#### Endpoint
+```
+DELETE /files/{filePath}
 ```
 
-### 5. Delete File
-- **Endpoint**: `DELETE /files/{filePath}`
-- **Path Parameters**:
-  - `filePath` (required, string)
-- **Response**: Return a `204 No Content` status code on successful deletion, or a `404 Not Found` status code if the file is not found.
+#### Request
 
-#### Example Request:
+##### Path Parameters
+- `filePath` (required, string): The path of the file to delete.
+
+##### Query Parameters
+- None
+
+##### Request Body
+- None
+
+##### Notable Request Headers
+- None
+
+##### Example Request
 ```bash
 DELETE /files/myfolder/file1.txt HTTP/1.1
 Host: api.example.com
 ```
 
-#### Example Response:
+#### Response
+
+##### Status Codes
+- `204 No Content`: Returned on successful deletion of the file.
+- `404 Not Found`: Returned if the file is not found.
+
+##### Notable Response Headers
+- None
+
+##### Response Payload
+- None
+
+##### Example Response (204 No Content)
 ```bash
 HTTP/1.1 204 No Content
-```
-
-#### Example Error Response (optional for this assignment):
-```bash
-HTTP/1.1 404 Not Found
 ```
