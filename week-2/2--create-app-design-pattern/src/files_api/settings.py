@@ -1,5 +1,7 @@
-"""Settings for the files API."""
-
+from pydantic import (
+    BaseModel,
+    Field,
+)
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -7,15 +9,12 @@ from pydantic_settings import (
 
 
 class Settings(BaseSettings):
-    """
-    Settings for the files API.
+    """Settings for the files API.
 
-    [pydantic.BaseSettings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) is a popular
-    framework for organizing, validating, and reading configuration values from a variety of sources
-    including environment variables.
+    Pydantic BaseSettings docs: https://docs.pydantic.dev/latest/concepts/pydantic_settings/#usage
+    FastAPI guide to managing settings: https://fastapi.tiangolo.com/advanced/settings/
     """
 
-    s3_bucket_name: str
-    """Name of the S3 bucket used by this API as the underlying file store."""
+    s3_bucket_name: str = Field(...)
 
     model_config = SettingsConfigDict(case_sensitive=False)
