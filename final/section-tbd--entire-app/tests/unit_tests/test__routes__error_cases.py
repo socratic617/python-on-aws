@@ -1,8 +1,5 @@
-import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-from files_api.main import create_app
-from files_api.settings import Settings
 from tests.consts import TEST_BUCKET_NAME
 from tests.utils import delete_s3_bucket
 
@@ -43,17 +40,16 @@ def test_validation_mutually_exclusive_parameters(client: TestClient):
     response = client.get("/files?page_size=10&page_token=some_token&directory=not_default")
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "errors" in response.json()
-    assert response.json()["errors"] == ["Value error, When page_token is provided, page_size must not be set."]
+    assert response.json()["errors"] == [
+        "Value error, When page_token is provided, page_size and directory must not be set."
+    ]
 
 
 def test_validation_page_size_greater_than_one(client: TestClient):
-    # Sending page_size less than or equal to 0 should raise a 422 error
+    """Sending page_size less than or equal to 0 should raise a 422 error."""
     response = client.get("/files?page_size=0")
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    from rich import print
-
-    print(response.json())
     assert "detail" in response.json()
     assert "page_size" in str(response.json()["detail"])
 
