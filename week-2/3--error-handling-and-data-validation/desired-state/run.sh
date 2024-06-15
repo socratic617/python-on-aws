@@ -20,15 +20,70 @@ function install {
     python -m pip install --editable "$THIS_DIR/[dev]"
 }
 
+function generate-python-api-client-docker {
+    OUTDIR="./files-api-client-2"
+    rm -rf "$OUTDIR"
+    docker run \
+        --rm \
+        -v "$PWD:/local" \
+    openapitools/openapi-generator-cli generate \
+        --input-spec http://host.docker.internal:8000/openapi.json \
+        --generator-name python-pydantic-v1 \
+        --output local/$OUTDIR \
+        --package-name files_api_client \
+        --model-package models \
+        --api-package api \
+        --artifact-version $(cat "$THIS_DIR/version.txt")
+}
+
+function generate-python-api-server-docker {
+    OUTDIR="./files-api-server"
+    rm -rf "$OUTDIR"
+    docker run \
+        --rm \
+        -v "$PWD:/local" \
+        --network host \
+    openapitools/openapi-generator-cli generate \
+        --input-spec http://host.docker.internal:8000/openapi.json \
+        --generator-name python-fastapi \
+        --output local/$OUTDIR \
+        --package-name files_api_client \
+        --model-package models \
+        --api-package api \
+        --artifact-version $(cat "$THIS_DIR/version.txt") \
+        --package-version "9.9.9"
+}
+
+# FastAPI docs for generating api clients: https://fastapi.tiangolo.com/advanced/generate-clients/
+# OpenAPI python client: https://github.com/openapi-generators/openapi-python-client
+function generate-python-api-client {
+    # write a temp config file to disk
+    cat > "$THIS_DIR/openapi-python-client-config.yaml" <<EOF
+project_name_override: files-api-client
+package_name_override: files_api_client
+package_version_override: "$(cat $THIS_DIR/version.txt)"
+EOF
+
+    which pipx || python -m pip install pipx
+    pipx run openapi-python-client generate \
+        --url "$API_BASE_URL/openapi.json" \
+        --meta setup \
+        --config "$THIS_DIR/openapi-python-client-config.yaml" \
+        --overwrite || true
+}
+
 function run {
     AWS_PROFILE=cloud-course \
     S3_BUCKET_NAME="some-bucket" \
-        uvicorn 'files_api.main:create_app' --reload
+        uvicorn 'files_api.main:create_app' --reload --factory
 }
 
 # start the FastAPI app, pointed at a mocked aws endpoint
 function run-mock {
     set +e
+
+    # kill the moto server if it is already running
+    lsof -i :5000 | grep LISTEN | awk '{print $2}' | xargs kill -9
 
     # Start moto.server in the background on localhost:5000
     python -m moto.server -p 5000 &
@@ -47,11 +102,12 @@ function run-mock {
     trap 'kill $MOTO_PID' EXIT
 
     # Set AWS endpoint URL and start FastAPI app with uvicorn in the foreground
-    uvicorn files_api.main:create_app --reload
+    uvicorn files_api.main:create_app --reload --factory
 
     # Wait for the moto.server process to finish (this is optional if you want to keep it running)
     wait $MOTO_PID
 }
+
 # run linting, formatting, and other static code quality tools
 function lint {
     pre-commit run --all-files

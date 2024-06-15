@@ -8,7 +8,10 @@ from typing import (
     Optional,
 )
 
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    Field,
+)
 
 
 # read (cRud)
@@ -28,7 +31,13 @@ class GetFilesResponse(BaseModel):
 class GetFilesQueryParams(BaseModel):
     page_size: int = 10
     directory: Optional[str] = ""
-    page_token: Optional[str] = None
+    page_token: Optional[str] = Field(
+        None,
+        json_schema_extra={
+            "description": "Token for fetching the next page of results",
+            "example": "some_token",
+        },
+    )
 
 
 # delete (cruD)
@@ -38,5 +47,8 @@ class DeleteFileResponse(BaseModel):
 
 # create/update (CrUd)
 class PutFileResponse(BaseModel):
+    """Response model for `PUT /files/:filePath`."""
+
     file_path: str
-    message: str
+    """Docstring"""
+    message: str = Field(..., description="A message describing the operation.")

@@ -52,7 +52,7 @@ async def upload_file(request: Request, file_path: str, file: UploadFile, respon
     return PutFileResponse(file_path=f"{file_path}", message=message)
 
 
-@ROUTER.get("/files")
+@ROUTER.get("/files", operation_id="list_files", tags=["files"])
 async def list_files(
     request: Request,
     query_params: GetFilesQueryParams = Depends(),  # noqa: B008
@@ -83,7 +83,24 @@ async def list_files(
     return GetFilesResponse(files=file_metadata_objs, next_page_token=next_page_token if next_page_token else None)
 
 
-@ROUTER.head("/files/{file_path:path}")
+@ROUTER.head(
+    "/files/{file_path:path}",
+    # docs - OpenAPI responses: https://swagger.io/docs/specification/describing-responses/
+    responses={
+        status.HTTP_200_OK: {
+            "description": "File metadata retrieved successfully.",
+            "headers": {
+                "Content-Type": {"description": "The MIME type of the file.", "schema": {"type": "string"}},
+                "Content-Length": {"description": "The size of the file in bytes.", "schema": {"type": "integer"}},
+                "Last-Modified": {
+                    "description": "The last modified date of the file.",
+                    "schema": {"type": "string", "format": "date-time"},
+                },
+            },
+        },
+        status.HTTP_404_NOT_FOUND: {"description": "File not found."},
+    },
+)
 async def get_file_metadata(request: Request, file_path: str, response: Response) -> Response:
     """Retrieve file metadata.
 

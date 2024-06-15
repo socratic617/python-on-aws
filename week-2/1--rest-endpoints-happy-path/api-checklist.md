@@ -1,4 +1,4 @@
-# API Design Checklist - Part 1
+# API Design Checklist - RESTful Endpoint Design
 
 ## Implement HTTP
 

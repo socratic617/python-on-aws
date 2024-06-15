@@ -1,4 +1,4 @@
-# API Design Checklist - Part 2 - 12-factor App
+# API Design Checklist - 12-factor App
 
 The state of the code at this point includes
 
