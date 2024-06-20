@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    HTTPException,
     Request,
     Response,
     UploadFile,
@@ -24,15 +25,26 @@ from files_api.schemas import (
 )
 from files_api.settings import Settings
 
-ROUTER = APIRouter()
+ROUTER = APIRouter(tags=["Files"])
 
 
-@ROUTER.put("/files/{file_path:path}")
-async def upload_file(request: Request, file_path: str, file: UploadFile, response: Response) -> PutFileResponse:
+@ROUTER.put(
+    "/v1/files/{file_path:path}",
+    responses={
+        status.HTTP_200_OK: {"model": PutFileResponse},
+        status.HTTP_201_CREATED: {"model": PutFileResponse},
+    },
+)
+async def upload_file(
+    request: Request,
+    file_path: str,
+    file_content: UploadFile,
+    response: Response,
+) -> PutFileResponse:
     """Upload a file."""
     settings: Settings = request.app.state.settings
 
-    file_bytes = await file.read()
+    file_bytes = await file_content.read()
 
     object_already_exists_at_path = object_exists_in_s3(settings.s3_bucket_name, object_key=file_path)
     if object_already_exists_at_path:
@@ -46,16 +58,16 @@ async def upload_file(request: Request, file_path: str, file: UploadFile, respon
         bucket_name=settings.s3_bucket_name,
         object_key=file_path,
         file_content=file_bytes,
-        content_type=file.content_type,
+        content_type=file_content.content_type,
     )
 
     return PutFileResponse(file_path=f"{file_path}", message=message)
 
 
-@ROUTER.get("/files", operation_id="list_files", tags=["files"])
+@ROUTER.get("/v1/files")
 async def list_files(
     request: Request,
-    query_params: GetFilesQueryParams = Depends(),  # noqa: B008
+    query_params: GetFilesQueryParams = Depends(),
 ) -> GetFilesResponse:
     """List files with pagination."""
     settings: Settings = request.app.state.settings
@@ -84,29 +96,44 @@ async def list_files(
 
 
 @ROUTER.head(
-    "/files/{file_path:path}",
-    # docs - OpenAPI responses: https://swagger.io/docs/specification/describing-responses/
+    "/v1/files/{file_path:path}",
     responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "File not found for the given `file_path`.",
+        },
         status.HTTP_200_OK: {
-            "description": "File metadata retrieved successfully.",
             "headers": {
-                "Content-Type": {"description": "The MIME type of the file.", "schema": {"type": "string"}},
-                "Content-Length": {"description": "The size of the file in bytes.", "schema": {"type": "integer"}},
+                "Content-Type": {
+                    "description": "The [MIME type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types) of the file.",
+                    "example": "text/plain",
+                    "schema": {"type": "string"},
+                },
+                "Content-Length": {
+                    "description": "The size of the file in bytes.",
+                    "example": 512,
+                    "schema": {"type": "integer"},
+                },
                 "Last-Modified": {
                     "description": "The last modified date of the file.",
+                    "example": "Thu, 01 Jan 2022 00:00:00 GMT",
                     "schema": {"type": "string", "format": "date-time"},
                 },
-            },
+            }
         },
-        status.HTTP_404_NOT_FOUND: {"description": "File not found."},
     },
 )
 async def get_file_metadata(request: Request, file_path: str, response: Response) -> Response:
-    """Retrieve file metadata.
+    """
+    Retrieve file metadata.
 
     Note: by convention, HEAD requests MUST NOT return a body in the response.
     """
     settings: Settings = request.app.state.settings
+
+    object_exists = object_exists_in_s3(bucket_name=settings.s3_bucket_name, object_key=file_path)
+    if not object_exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
     get_object_response = fetch_s3_object(settings.s3_bucket_name, object_key=file_path)
     response.headers["Content-Type"] = get_object_response["ContentType"]
     response.headers["Content-Length"] = str(get_object_response["ContentLength"])
@@ -115,13 +142,33 @@ async def get_file_metadata(request: Request, file_path: str, response: Response
     return response
 
 
-@ROUTER.get("/files/{file_path:path}")
+@ROUTER.get(
+    "/v1/files/{file_path:path}",
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "File not found for the given `file_path`.",
+        },
+        status.HTTP_200_OK: {
+            "description": "The file content.",
+            "content": {
+                "application/octet-stream": {
+                    "schema": {"type": "string", "format": "binary"},
+                },
+            },
+        },
+    },
+)
 async def get_file(
     request: Request,
     file_path: str,
 ) -> StreamingResponse:
     """Retrieve a file."""
     settings: Settings = request.app.state.settings
+
+    object_exists = object_exists_in_s3(bucket_name=settings.s3_bucket_name, object_key=file_path)
+    if not object_exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
     get_object_response = fetch_s3_object(settings.s3_bucket_name, object_key=file_path)
     return StreamingResponse(
         content=get_object_response["Body"],
@@ -129,16 +176,32 @@ async def get_file(
     )
 
 
-@ROUTER.delete("/files/{file_path:path}")
+@ROUTER.delete(
+    "/v1/files/{file_path:path}",
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "File not found for the given `file_path`.",
+        },
+        status.HTTP_204_NO_CONTENT: {
+            "description": "File deleted successfully.",
+        },
+    },
+)
 async def delete_file(
     request: Request,
     file_path: str,
     response: Response,
 ) -> Response:
-    """Delete a file.
+    """
+    Delete a file.
 
-    NOTE: DELETE requests MUST NOT return a body in the response."""
+    NOTE: DELETE requests MUST NOT return a body in the response.
+    """
     settings: Settings = request.app.state.settings
+    if not object_exists_in_s3(settings.s3_bucket_name, object_key=file_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
     delete_s3_object(settings.s3_bucket_name, object_key=file_path)
+
     response.status_code = status.HTTP_204_NO_CONTENT
     return response

@@ -8,6 +8,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import StreamingResponse
+
 from files_api.s3.delete_objects import delete_s3_object
 from files_api.s3.read_objects import (
     fetch_s3_object,
@@ -35,7 +36,6 @@ async def upload_file(request: Request, file_path: str, file: UploadFile, respon
     file_bytes = await file.read()
 
     object_already_exists_at_path = object_exists_in_s3(settings.s3_bucket_name, object_key=file_path)
-
     if object_already_exists_at_path:
         message = f"Existing file updated at path: /{file_path}"
         response.status_code = status.HTTP_200_OK
@@ -91,11 +91,12 @@ async def get_file_metadata(request: Request, file_path: str, response: Response
     Note: by convention, HEAD requests MUST NOT return a body in the response.
     """
     settings: Settings = request.app.state.settings
-    try:
-        get_object_response = fetch_s3_object(settings.s3_bucket_name, object_key=file_path)
-    except Exception:
+
+    object_exists = object_exists_in_s3(bucket_name=settings.s3_bucket_name, object_key=file_path)
+    if not object_exists:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
+    get_object_response = fetch_s3_object(settings.s3_bucket_name, object_key=file_path)
     response.headers["Content-Type"] = get_object_response["ContentType"]
     response.headers["Content-Length"] = str(get_object_response["ContentLength"])
     response.headers["Last-Modified"] = get_object_response["LastModified"].strftime("%a, %d %b %Y %H:%M:%S GMT")
@@ -109,12 +110,16 @@ async def get_file(
     file_path: str,
 ) -> StreamingResponse:
     """Retrieve a file."""
+    # 2 - Internal Server Error - errors that the user cannot fix
+    # error case: not authenticated/authorized to make calls to AWS
+    # error case: the bucket does not exist
     settings: Settings = request.app.state.settings
-    try:
-        get_object_response = fetch_s3_object(settings.s3_bucket_name, object_key=file_path)
-    except Exception:
+
+    object_exists = object_exists_in_s3(bucket_name=settings.s3_bucket_name, object_key=file_path)
+    if not object_exists:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
+    get_object_response = fetch_s3_object(settings.s3_bucket_name, object_key=file_path)
     return StreamingResponse(
         content=get_object_response["Body"],
         media_type=get_object_response["ContentType"],

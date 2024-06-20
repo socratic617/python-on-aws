@@ -19,6 +19,7 @@ async def handle_broad_exceptions(request: Request, call_next):
 
 
 # fastapi docs on error handlers: https://fastapi.tiangolo.com/tutorial/handling-errors/
+# pylint: disable=unused-argument
 async def handle_pydantic_validation_errors(request: Request, exc: pydantic.ValidationError) -> JSONResponse:
     errors = exc.errors()
     return JSONResponse(

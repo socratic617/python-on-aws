@@ -20,6 +20,7 @@
   - **Bad:** `"the file was not found in the S3 bucket at path <...>".` (mentions S3)
   - **Good:** `"the file requested was not found at path <...>."`
 - [ ] **(not in this section)** Include a request ID in error messages to give to "the support team" (you). Include it in logs.
+- [ ] Unit test that the correct status codes and responses are returned in error cases
 
 ## Data validation
 

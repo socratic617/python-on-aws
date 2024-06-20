@@ -1,7 +1,9 @@
 # Python .gitignore template from
 # https://github.com/github/gitignore/blob/main/Python.gitignore
 
-*test_dir
+
+./*test_dir
+
 *.DS_Store
 
 # Byte-compiled / optimized / DLL files

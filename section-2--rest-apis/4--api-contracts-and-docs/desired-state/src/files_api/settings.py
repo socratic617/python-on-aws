@@ -1,7 +1,4 @@
-from pydantic import (
-    BaseModel,
-    Field,
-)
+from pydantic import Field
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -9,7 +6,8 @@ from pydantic_settings import (
 
 
 class Settings(BaseSettings):
-    """Settings for the files API.
+    """
+    Settings for the files API.
 
     Pydantic BaseSettings docs: https://docs.pydantic.dev/latest/concepts/pydantic_settings/#usage
     FastAPI guide to managing settings: https://fastapi.tiangolo.com/advanced/settings/

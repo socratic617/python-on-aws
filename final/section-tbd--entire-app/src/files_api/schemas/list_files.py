@@ -35,7 +35,6 @@ class FileListResponse(BaseModel):
                         {"key": "file2.txt", "last_modified": "2023-01-02T00:00:00Z", "size_bytes": 67890},
                     ],
                     "next_page_token": "some_token",
-                    "remaining_pages": 3,
                 }
             ]
         }

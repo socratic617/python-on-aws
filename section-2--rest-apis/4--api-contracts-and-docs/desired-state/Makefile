@@ -7,8 +7,11 @@
 build:
 	bash run.sh build
 
-generate-python-api-client:
-	bash run.sh generate-python-api-client
+install-generated-sdk:
+	bash run.sh install-generated-sdk
+
+generate-client-library:
+	bash run.sh generate-client-library
 
 run:
 	bash run.sh run

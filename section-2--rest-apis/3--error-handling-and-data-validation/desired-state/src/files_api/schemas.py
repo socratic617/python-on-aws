@@ -13,9 +13,12 @@ from pydantic import (
     Field,
     model_validator,
 )
+from typing_extensions import Self
 
-DEFAULT_GET_FILES_DIRECTORY = ""
 DEFAULT_GET_FILES_PAGE_SIZE = 10
+DEFAULT_GET_FILES_MIN_PAGE_SIZE = 10
+DEFAULT_GET_FILES_MAX_PAGE_SIZE = 100
+DEFAULT_GET_FILES_DIRECTORY = ""
 
 
 # read (cRud)
@@ -33,22 +36,23 @@ class GetFilesResponse(BaseModel):
 
 # read (cRud)
 class GetFilesQueryParams(BaseModel):
-    page_size: int = Field(DEFAULT_GET_FILES_PAGE_SIZE, gt=1)
-    directory: Optional[str] = DEFAULT_GET_FILES_DIRECTORY
+    page_size: int = Field(
+        DEFAULT_GET_FILES_PAGE_SIZE,
+        ge=DEFAULT_GET_FILES_MIN_PAGE_SIZE,
+        le=DEFAULT_GET_FILES_MAX_PAGE_SIZE,
+    )
+    directory: str = DEFAULT_GET_FILES_DIRECTORY
     page_token: Optional[str] = None
 
-    # pylint: disable=no-self-argument
-    @model_validator(mode="before")
-    def check_mutually_exclusive(cls, values):
-        page_token = values.get("page_token")
-        if page_token:
-            directory_and_page_size_are_set_to_default = (
-                values["directory"] == DEFAULT_GET_FILES_DIRECTORY
-                and values["page_size"] == DEFAULT_GET_FILES_PAGE_SIZE
-            )
-            if not directory_and_page_size_are_set_to_default:
-                raise ValueError("When page_token is provided, page_size and directory must not be set.")
-        return values
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> Self:
+        if self.page_token:
+            get_files_query_params: dict = self.model_dump(exclude_unset=True)
+            page_size_set = "page_size" in get_files_query_params.keys()
+            directory_set = "directory" in get_files_query_params.keys()
+            if page_size_set or directory_set:
+                raise ValueError("page_token is mutually exclusive with page_size and directory")
+        return self
 
 
 # delete (cruD)
@@ -58,7 +62,5 @@ class DeleteFileResponse(BaseModel):
 
 # create/update (CrUd)
 class PutFileResponse(BaseModel):
-    """Response model for `PUT /files/:filePath`."""
-
     file_path: str
     message: str

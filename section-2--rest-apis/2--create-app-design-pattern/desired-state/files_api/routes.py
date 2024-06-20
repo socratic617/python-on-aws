@@ -7,7 +7,6 @@ from fastapi import (
     status,
 )
 from fastapi.responses import StreamingResponse
-
 from files_api.s3.delete_objects import delete_s3_object
 from files_api.s3.read_objects import (
     fetch_s3_object,

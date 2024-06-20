@@ -7,9 +7,6 @@
 build:
 	bash run.sh build
 
-generate-python-api-client:
-	bash run.sh generate-python-api-client
-
 run:
 	bash run.sh run
 
