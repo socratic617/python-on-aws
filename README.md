@@ -1,5 +1,7 @@
 # Cloud Engineering for Python Developers
 
+![Maintained by](https://img.shields.io/badge/Maintained%20by-MLOps%20Club-05998B?style=for-the-badge)
+
 <!-- The branching structure of this repository looks like this:
 
 ![alt text](./assets/course-repo-branching-scheme.png) -->
@@ -36,6 +38,3 @@ TODO:
     """
 
   ```
-
-
-![Maintained by](https://img.shields.io/badge/Maintained%20by-MLOps%20Club-05998B?style=for-the-badge)
