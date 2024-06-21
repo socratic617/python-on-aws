@@ -1,7 +1,7 @@
 # Lab: Create AI-generated files using the OpenAI
 
 <figure align="center">
-  <img src="../assets/learning-aws-and-python.png" alt="Cute, generated image" width="350">
+  <img src="../../assets/learning-aws-and-python.png" alt="Cute, generated image" width="350">
   <figcaption>You, completing this lab and generating content with OpenAI</figcaption>
 </figure>
 
