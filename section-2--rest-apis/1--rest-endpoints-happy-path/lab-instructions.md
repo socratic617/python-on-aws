@@ -161,7 +161,6 @@ Host: api.example.com
     - `lastModified` (string): The last modified date of the file.
     - `sizeBytes` (integer): The size of the file in bytes.
   - `nextPageToken` (string): The token for the next page of results.
-  - `remainingPages` (integer): The number of remaining pages.
 
 ##### Example Response
 ```bash
@@ -182,7 +181,6 @@ Content-Type: application/json
     }
   ],
   "nextPageToken": "next_page_token_value",
-  "remainingPages": 2
 }
 ```
 
