@@ -18,33 +18,29 @@ def client(mocked_aws) -> TestClient:  # pylint: disable=unused-argument
 
 
 def test__upload_file__happy_path(client: TestClient):
-    # create a file
-    test_file_path = "some/nested/file.txt"
-    test_file_content = b"some content"
-    test_file_content_type = "text/plain"
 
     response = client.put(
-        f"/files/{test_file_path}",
-        files={"file": (test_file_path, test_file_content, test_file_content_type)},
+        f"/files/{TEST_FILE_PATH}",
+        files={"file": (TEST_FILE_PATH, TEST_FILE_CONTENT, TEST_FILE_CONTENT_TYPE)},
     )
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {
-        "file_path": test_file_path,
-        "message": f"New file uploaded at path: /{test_file_path}",
+        "file_path": TEST_FILE_PATH,
+        "message": f"New file uploaded at path: /{TEST_FILE_PATH}",
     }
 
     # update an existing file
     updated_content = b"updated content"
     response = client.put(
-        f"/files/{test_file_path}",
-        files={"file": (test_file_path, updated_content, test_file_content_type)},
+        f"/files/{TEST_FILE_PATH}",
+        files={"file": (TEST_FILE_PATH, updated_content, TEST_FILE_CONTENT_TYPE)},
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "file_path": test_file_path,
-        "message": f"Existing file updated at path: /{test_file_path}",
+        "file_path": TEST_FILE_PATH,
+        "message": f"Existing file updated at path: /{TEST_FILE_PATH}",
     }
 
 
