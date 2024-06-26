@@ -1,3 +1,5 @@
+set -ex
+
 # arn:aws:lambda:us-west-2:905418322705:layer:cloud-course-project-python-deps:1
 
 # aws lambda publish-layer-version --layer-name cloud-course-project-python-deps --compatible-runtimes python3.12 --zip-file fileb://lambda-layer.zip --compatible-architectures arm64 --profile cloud-course --region us-west-2
@@ -7,8 +9,18 @@ rm -rf lambda-env || true
 rm -f lambda-layer.zip || true
 
 # install dependencies
-mkdir -p lambda-env/python
-pip install --target ./lambda-env/python -r requirements.txt
+docker logout || true  # log out to use the public ecr
+docker pull public.ecr.aws/lambda/python:3.12-arm64
+
+docker run --rm \
+    --volume $(pwd):/out \
+    --entrypoint /bin/bash \
+    public.ecr.aws/lambda/python:3.12-arm64 \
+    -c ' \
+    pip install \
+        -r /out/requirements.txt \
+        --target /out/lambda-env/python \
+    '
 
 # bundle dependencies and handler in a zip file
 cd lambda-env
