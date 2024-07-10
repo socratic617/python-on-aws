@@ -14,14 +14,14 @@ curl -X PUT "https://id.execute-api.us-east-1.amazonaws.com/v1/files/generated/s
      -F "file=@/path/to/your/file"
 ```
 
-See [`./put-audio-file-request.json`](./put-audio-file-request.json) for an example request.
+See [`./mangum-notebook/put-audio-file-request.json`](./mangum-notebook/put-audio-file-request.json) for an example request.
 
 The example is not included in this file because it is long.
 
 ### List Files - `GET /v1/files`
 
 ```curl
-curl -X GET "https://id.execute-api.us-east-1.amazonaws.com/v1/files?page_size=10&directory=docs" \
+curl -X GET "https://id.execute-api.us-east-1.amazonaws.com/v1/files?page_size=10&directory=generated" \
      -H "Content-Type: application/json"
 ```
 
