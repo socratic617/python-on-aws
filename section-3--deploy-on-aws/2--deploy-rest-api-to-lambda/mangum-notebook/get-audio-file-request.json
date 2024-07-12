@@ -15,7 +15,7 @@
             "userAgent": "CustomUserAgentString"
         },
         "requestId": "example-id",
-        "routeKey": "PUT /v1/files/{file_path}",
+        "routeKey": "GET /v1/files/{file_path}",
         "stage": "prod"
     },
     "pathParameters": {

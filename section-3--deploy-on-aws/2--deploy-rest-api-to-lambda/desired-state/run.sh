@@ -54,8 +54,12 @@ function deploy-lambda:cd {
     docker logout || true  # log out to use the public ecr
     docker pull public.ecr.aws/lambda/python:3.12-arm64
 
+    # install dependencies in a docker container to ensure compatibility with AWS Lambda
+    # 
+    # Note: we remote boto3 and botocore because AWS lambda automatically
+    # provides these. This saves us ~24MB in the final, uncompressed layer size.
     docker run --rm \
-        --volume $(pwd):/out \
+        --volume "${THIS_DIR}":/out \
         --entrypoint /bin/bash \
         public.ecr.aws/lambda/python:3.12-arm64 \
         -c " \
@@ -63,6 +67,8 @@ function deploy-lambda:cd {
         && pip install \
             --editable /out/[aws-lambda] \
             --target /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python \
+        && rm -rf /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python/boto3 \
+        && rm -rf /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python/botocore \
         "
 
     # bundle dependencies and handler in a zip file
@@ -93,6 +99,7 @@ function deploy-lambda:cd {
     aws lambda update-function-configuration \
         --function-name "$AWS_LAMBDA_FUNCTION_NAME" \
         --layers $LAYER_VERSION_ARN \
+        --handler "files_api.aws_lambda_handler.handler" \
         --output json | cat
 }
 
