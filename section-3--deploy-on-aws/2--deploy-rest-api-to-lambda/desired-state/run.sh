@@ -39,6 +39,11 @@ function deploy-lambda {
 }
 
 function deploy-lambda:cd {
+    # Get the current user ID and group ID to run the docker command with so that
+	# the generated lambda-env folder doesn't have root permissions, instead user level permission
+	# This will help in library installation in the docker container and cleaning up the lambda-env folder later on.
+	USER_ID=$(id -u)
+	GROUP_ID=$(id -g)
 
     LAMBDA_LAYER_DIR_NAME="lambda-env"
     LAMBDA_LAYER_DIR="${BUILD_DIR}/${LAMBDA_LAYER_DIR_NAME}"
@@ -59,11 +64,12 @@ function deploy-lambda:cd {
     # Note: we remote boto3 and botocore because AWS lambda automatically
     # provides these. This saves us ~24MB in the final, uncompressed layer size.
     docker run --rm \
+        --user $USER_ID:$GROUP_ID \
         --volume "${THIS_DIR}":/out \
         --entrypoint /bin/bash \
         public.ecr.aws/lambda/python:3.12-arm64 \
         -c " \
-        pip install --upgrade pip \
+        pip install --root --upgrade pip \
         && pip install \
             --editable /out/[aws-lambda] \
             --target /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python \
