@@ -18,5 +18,3 @@ services:
       - ./volumes/syslog:/var/log/syslog
       - ./aws-credentials:/root/.aws/credentials
     command: ["-config", "/etc/cwagentconfig/cloudwatch-config.json"]
-    env_file:
-      - .env

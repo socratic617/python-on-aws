@@ -4,35 +4,28 @@ from aws_xray_sdk.core import (
     patch_all,
     xray_recorder,
 )
+from aws_xray_sdk.core.models.segment import Segment
+from rich import inspect
+from rich.console import Console
 
-# Patch all libraries to be instrumented by AWS X-Ray
-# patch_all()
+
 
 sampling_rules = {
-    "version": 1,  # Ensure the version field is set correctly
-    "rules": [
-        # {
-        #     "RuleName": "DefaultRule",
-        #     "Priority": 1,
-        #     "FixedRate": 1.0,
-        #     "ReservoirSize": 100,
-        #     "ServiceName": "*",
-        #     "ServiceType": "*",
-        #     "HTTPMethod": "*",
-        #     "URLPath": "*",
-        #     "Host": "*",
-        #     "ResourceARN": "*",
-        #     "Version": 1,
-        # },
-    ],
-    "default": {
-        "FixedRate": 0.1,
-        "ReservoirSize": 1,
-        "FixedTarget": 1,
-        "fixed_target": 1,
-        "rate": 0.1,
-        "Rate": 0.1,
-    },
+  "version": 2,
+  "rules": [
+    {
+      "description": "Match all traces",
+      "host": "*",
+      "http_method": "*",
+      "url_path": "*",
+      "fixed_target": 1,
+      "rate": 1.0
+    }
+  ],
+  "default": {
+    "fixed_target": 1,
+    "rate": 1.0
+  }
 }
 
 # trace config
@@ -41,5 +34,20 @@ xray_recorder.configure(
     daemon_address="localhost:2000",
     sampling=True,
     sampling_rules=sampling_rules,
+    context_missing=""
 )
 
+
+console = Console(force_terminal=True)
+
+with xray_recorder.in_segment("test-segment") as segment:
+    segment: Segment
+    segment.put_annotation("name", "Eric")
+    inspect(xray_recorder.current_segment(), console=console)
+
+    with xray_recorder.in_subsegment("test-subsegment") as subsegment:
+        subsegment.put_annotation("name", "Eric Sub")
+        inspect(xray_recorder.current_subsegment(), console=console)
+
+# Patch all libraries to be instrumented by AWS X-Ray
+patch_all()

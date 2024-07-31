@@ -3,7 +3,7 @@
     "metrics_collection_interval": 60,
     "region": "us-west-2",
     "logfile": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
-    "debug": false,
+    "debug": true,
     "omit_hostname": true,
     "run_as_user": "root",
     "usage_data": false
