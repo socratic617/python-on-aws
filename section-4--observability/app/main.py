@@ -16,12 +16,8 @@ from fastapi import (
 )
 from aws_xray_sdk.core.models.segment import Segment
 
-xray_recorder
-
 # Patch all libraries to be instrumented by AWS X-Ray
 patch_all()
-
-app = FastAPI(docs_url="/")
 
 # trace config
 xray_recorder.configure(
@@ -42,6 +38,10 @@ config = get_config()
 config.service_name = "fastapi-service"
 config.log_group_name = "FastAPIAppMetrics"
 
+
+#### FastAPI App ####
+
+app = FastAPI(docs_url="/")
 
 @app.middleware("http")
 async def record_xray_segment(request: Request, call_next):

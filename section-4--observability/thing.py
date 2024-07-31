@@ -34,7 +34,6 @@ xray_recorder.configure(
     daemon_address="localhost:2000",
     sampling=True,
     sampling_rules=sampling_rules,
-    context_missing=""
 )
 
 
