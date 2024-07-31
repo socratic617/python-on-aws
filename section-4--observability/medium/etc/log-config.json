@@ -1,0 +1,1 @@
+{"version":"1","log_configs":[{"log_group_name":"container-aws-logs-test"}],"region":"us-west-2"}

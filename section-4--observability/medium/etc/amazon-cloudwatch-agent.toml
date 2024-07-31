@@ -1,0 +1,43 @@
+[agent]
+  collection_jitter = "0s"
+  debug = false
+  flush_interval = "1s"
+  flush_jitter = "0s"
+  hostname = ""
+  interval = "60s"
+  logfile = ""
+  logtarget = "lumberjack"
+  metric_batch_size = 1000
+  metric_buffer_limit = 10000
+  omit_hostname = true
+  precision = ""
+  quiet = false
+  round_interval = false
+
+[inputs]
+
+  [[inputs.logfile]]
+    destination = "cloudwatchlogs"
+    file_state_folder = "/opt/aws/amazon-cloudwatch-agent/logs/state"
+
+    [[inputs.logfile.file_config]]
+      file_path = "/log/app.log"
+      from_beginning = true
+      log_group_class = ""
+      log_group_name = "container-aws-logs-test"
+      log_stream_name = "e05b1cb90610"
+      pipe = false
+      retention_in_days = 30
+      timestamp_layout = ["[2006-01-_2T15:04:05..000-0700]", "[2006-1-_2T15:04:05..000-0700]"]
+      timestamp_regex = "(\\[\\d{4}-\\s{0,1}\\d{1,2}-\\s{0,1}\\d{1,2}T\\d{2}:\\d{2}:\\d{2}\\.(\\d{1,9})[\\+-]\\d{4}\\])"
+
+[outputs]
+
+  [[outputs.cloudwatchlogs]]
+    force_flush_interval = "5s"
+    log_stream_name = "e05b1cb90610"
+    mode = "OP"
+    profile = "AmazonCloudWatchAgent"
+    region = "us-west-2"
+    region_type = "ACJ"
+    shared_credential_file = "/root/.aws/credentials"

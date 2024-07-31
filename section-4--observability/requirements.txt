@@ -1,0 +1,6 @@
+httpx
+aws-xray-sdk
+boto3
+aws-embedded-metrics
+ipykernel
+rich

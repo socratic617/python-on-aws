@@ -1,0 +1,32 @@
+{
+    "agent": {
+      "metrics_collection_interval": 60,
+      "run_as_user": "root",
+      "region": "us-west-2",
+      "mode": "onPrem"
+    },
+    "logs": {
+      "logs_collected": {
+        "files": {
+          "collect_list": [
+            {
+              "file_path": "/log/app.log",
+              "log_group_name": "container-aws-logs-test",
+              "log_stream_name": "{hostname}",
+              "timestamp_format" :"[%Y-%m-%dT%H:%M:%S.%f%z]",
+              "retention_in_days": 30
+            }
+          ]
+        }
+      }
+    },
+      "traces": {
+        "traces_collected": {
+          "xray": {
+            "bind_address": "0.0.0.0:2000"
+          }
+        }
+      }
+  }
+
+
