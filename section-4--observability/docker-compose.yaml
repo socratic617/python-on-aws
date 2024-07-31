@@ -12,7 +12,7 @@ services:
     ports:
       - "2000:2000"
     environment:
-      - AWS_REGION=us-east-1
+      - AWS_REGION=us-west-2
     volumes:
       - ./cloudwatch-config.json:/etc/cwagentconfig/cloudwatch-config.json
       - ./volumes/syslog:/var/log/syslog

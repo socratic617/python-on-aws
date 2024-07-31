@@ -28,12 +28,16 @@ sampling_rules = {
   }
 }
 
+
+# Patch all libraries to be instrumented by AWS X-Ray
+patch_all()
+
 # trace config
 xray_recorder.configure(
     service="my-service",
     daemon_address="localhost:2000",
-    sampling=True,
-    sampling_rules=sampling_rules,
+    # sampling=True,
+    # sampling_rules=sampling_rules,
 )
 
 
@@ -48,5 +52,5 @@ with xray_recorder.in_segment("test-segment") as segment:
         subsegment.put_annotation("name", "Eric Sub")
         inspect(xray_recorder.current_subsegment(), console=console)
 
-# Patch all libraries to be instrumented by AWS X-Ray
-patch_all()
+        from time import sleep
+        sleep(0.5)

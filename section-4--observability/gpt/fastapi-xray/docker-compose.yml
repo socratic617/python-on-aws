@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  fastapi-app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_REGION=us-west-2
+      - AWS_XRAY_DAEMON_ADDRESS=cloudwatch-agent:2000
+    # logging:
+    #   driver: awslogs
+    #   options:
+    #     awslogs-group: fastapi-xray-log-group
+    #     awslogs-region: us-west-2
+    #     awslogs-stream: fastapi-app
+
+  # aws configure export-credentials --profile your-profile-name --format env > .env
+  # xray-daemon:
+  #   image: amazon/aws-xray-daemon
+  #   command: --local-mode --log-level dev --bind 0.0.0.0:2000 --bind-tcp 0.0.0.0:2000 --region us-west-2
+  #   ports:
+  #     - "2000:2000/udp"
+    # volumes:
+    #   - ./aws-credentials:/root/.aws/credentials
+    # env_file:
+    #   - .env
+
+  cloudwatch-agent:
+    image: amazon/cloudwatch-agent
+    ports:
+      - "2000:2000"
+    volumes:
+      - ./cloudwatch-config.json:/etc/cwagentconfig/cloudwatch-config.json
+      - ~/.aws:/root/.aws:ro
+    command: -config /etc/cwagentconfig/cloudwatch-config.json
+    depends_on:
+      - fastapi-app
+    env_file:
+      - .env
