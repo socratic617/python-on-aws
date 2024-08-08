@@ -1,9 +1,0 @@
-version: "3.8"
-services:
-  agent:
-    image: amazon/cloudwatch-agent
-    volumes:
-      - ./log-collect.json:/opt/aws/amazon-cloudwatch-agent/bin/default_linux_config.json
-      - ~/aws:/root/.aws
-      - ./log:/log
-      - ./etc:/opt/aws/amazon-cloudwatch-agent/etc
