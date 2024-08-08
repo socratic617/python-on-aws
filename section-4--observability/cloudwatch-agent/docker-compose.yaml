@@ -1,0 +1,65 @@
+services:
+
+  fastapi:
+    build: 
+      context: ../traces
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../traces/app:/app
+    environment:
+      AWS_REGION: us-west-2
+      AWS_XRAY_DAEMON_ADDRESS: cloudwatch-agent:2000
+      AWS_EMF_AGENT_ENDPOINT: udp://0.0.0.0:25888
+      AWS_EMF_EC2_METADATA_ENDPOINT: http://ec2-metadata-service-mock:3000/ec2-metadata
+      AWS_EMF_EC2_ENVIRONMENT_OVERRIDE: local
+      AWS_EMF_ENABLE_DEBUG_LOGGING: true
+    # send all logs to fluentd
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: fastapi.all
+    env_file:
+      - .env
+    # depends_on:
+    #   - fluentd
+
+  # fluentd will write incoming logs to a file that the cloudwatch agent can pick up
+  fluentd:
+    image: fluentd:v1.16.2-debian-1.1
+    volumes:
+      - ./fluentd/conf:/fluentd/etc
+      - ./logs:/fluentd/log # Mount a volume for Fluentd logs
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+
+  # fastapi can hit this mocked service when using the embedded-metrics-format python library;
+  # the cloudwatch agent does not need to hit this--it will just run in local mode
+  ec2-metadata-service-mock:
+    build:
+      context: ./ec2-metadata-service
+      dockerfile: Dockerfile
+    image: ec2metadata:latest
+    ports:
+      - "3000:3000"
+
+  # accept logs, traces, and metrics from fastapi and send them to cloudwatch in batches on an interval
+  cloudwatch-agent:
+    image: amazon/cloudwatch-agent:1.300042.1b746
+    ports:
+      - "25888:25888/udp"
+      - "25888:25888/tcp"
+      - "2000:2000/udp"
+      - "2000:2000/tcp"
+    environment:
+      AWS_REGION: us-west-2
+    volumes:
+      - ./cloudwatch-config.json:/etc/cwagentconfig/cloudwatch-config.json
+      - ./.aws:/root/.aws:ro
+      - ./logs/:/var/log/
+      - ./etc:/opt/aws/amazon-cloudwatch-agent/etc
+    env_file:
+      - .env

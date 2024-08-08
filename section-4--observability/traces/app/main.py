@@ -21,25 +21,14 @@ patch_all()
 
 # trace config
 xray_recorder.configure(
-    service="fastapi-service",
-    daemon_address="host.docker.internal:2000",
-    sampling=True,
     context_missing="RUNTIME_ERROR",
-    sampling_rules={
-        "version": 2,
-        "rules": [],
-        "default": {"fixed_target": 1, "rate": 1.0},
-    },
+    # sampling=True,
+    # sampling_rules={
+    #     "version": 2,
+    #     "rules": [],
+    #     "default": {"fixed_target": 1, "rate": 1.0},
+    # },
 )
-
-# metrics config
-config = get_config()
-
-config.service_name = "fastapi-service"
-config.log_group_name = "FastAPIAppMetrics"
-
-
-#### FastAPI App ####
 
 app = FastAPI(docs_url="/")
 
@@ -59,6 +48,10 @@ async def record_xray_segment(request: Request, call_next):
 @asynccontextmanager
 async def make_metrics_logger() -> AsyncGenerator[MetricsLogger, None]:
     metrics = create_metrics_logger()
+
+    # prevent default setting of ServiceName, LogGroup, and ServiceType as dimensions on the metrics
+    metrics.reset_dimensions(use_default=False)
+
     try:
         yield metrics
     finally:
@@ -81,6 +74,6 @@ async def return_error():
 @app.get("/custom_metric")
 async def send_custom_metric():
     async with make_metrics_logger() as metrics:
-        metrics.put_dimensions({"ServiceName": "fastapi-service"})
-        metrics.put_metric("CustomMetric", 1, "Count")
+        metrics.set_property(key="ExampleProperty", value="ExampleValue")
+        metrics.put_metric("CustomMetric2", 1, "Count")
     return {"message": "Custom metric sent"}

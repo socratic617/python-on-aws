@@ -6,8 +6,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - AWS_REGION=us-west-2
-      - AWS_XRAY_DAEMON_ADDRESS=cloudwatch-agent:2000
+      AWS_REGION: us-west-2
+      AWS_XRAY_DAEMON_ADDRESS: cloudwatch-agent:2000
+
     # logging:
     #   driver: awslogs
     #   options:

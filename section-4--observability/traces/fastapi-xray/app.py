@@ -11,6 +11,7 @@ xray_recorder.configure(
         "rules": [],
         "default": {"fixed_target": 1, "rate": 1.0},
     },
+    sampling=True,
 )
 patch_all()
 

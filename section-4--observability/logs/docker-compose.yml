@@ -1,0 +1,26 @@
+version: '3.8'
+
+# Export your AWS credentials to a .env file
+# aws configure export-credentials --profile cloud-course --format env > .env
+services:
+  fastapi_app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    labels:
+      logspout: "enable"
+
+  logspout:
+    image: mdsol/logspout
+    command: "cloudwatch://${LOGSPOUT_CLOUDWATCH__AWS_REGION}?DEBUG=1&NOEC2"
+    environment:
+      AWS_REGION: us-west-2
+      EXCLUDE_LABELS: "logspout=disable"
+      LOGSPOUT_GROUP: ${LOGSPOUT_CLOUDWATCH__GROUP_PREFIX}-${HOST}
+      LOGSPOUT_STREAM: {{.Name}}-{{.ID}}
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    env_file:
+      - .env

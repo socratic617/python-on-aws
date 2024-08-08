@@ -36,8 +36,8 @@ patch_all()
 xray_recorder.configure(
     service="my-service",
     daemon_address="localhost:2000",
-    # sampling=True,
-    # sampling_rules=sampling_rules,
+    sampling=True,
+    sampling_rules=sampling_rules,
 )
 
 
