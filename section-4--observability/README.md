@@ -1,8 +1,8 @@
-# Explore logs, traces, and metrics
-
-## Getting started
+# Local dev environment for CloudWatch logs, metrics, and X-Ray traces
 
 ![alt text](image.png)
+
+## Getting started
 
 1. Make sure you have an AWS profile with active credentials called `cloud-course`. 
     - It should have access to 
