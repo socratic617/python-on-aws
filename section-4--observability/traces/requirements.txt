@@ -9,3 +9,4 @@ rich
 # xray.ipynb
 requests
 boto3-stubs[xray]
+aioboto3
