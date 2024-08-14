@@ -4,3 +4,8 @@ boto3
 aws-embedded-metrics
 ipykernel
 rich
+
+
+# xray.ipynb
+requests
+boto3-stubs[xray]
