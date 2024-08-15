@@ -22,8 +22,6 @@ The objective is to write one or more endpoints that save files to S3. The files
 
   ![](../../assets/openai-sdk-demo-notebook.png)
 
-  **Note:** The notebook does not render properly in GitHub. 
-
 ## Reference implementation
 
 For your own learning, I recommend you think about how to **design**, **implement**, and **test** endpoint(s) yourself.
