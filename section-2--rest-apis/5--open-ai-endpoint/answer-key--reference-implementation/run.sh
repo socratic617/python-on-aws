@@ -24,81 +24,6 @@ function install {
     python -m pip install --editable "$THIS_DIR/[dev]"
 }
 
-# package and deploy the src/ code by updating an existing AWS Lambda function
-# The function package consists of
-# - deployment package: contents of the src/ folder
-# - layer package: installed dependencies
-#
-# Note, this function assumes that
-# - a lambda function named $AWS_LAMBDA_FUNCTION_NAME already exists
-# - docker 🐳 is required to run this function
-function deploy-lambda {
-    export AWS_PROFILE=cloud-course
-    export AWS_REGION=us-west-2
-    deploy-lambda:cd
-}
-
-function deploy-lambda:cd {
-
-    LAMBDA_LAYER_DIR_NAME="lambda-env"
-    LAMBDA_LAYER_DIR="${BUILD_DIR}/${LAMBDA_LAYER_DIR_NAME}"
-    LAMBDA_LAYER_ZIP_FPATH="${BUILD_DIR}/lambda-layer.zip"
-    LAMBDA_HANDLER_ZIP_FPATH="${BUILD_DIR}/lambda.zip"
-    SRC_DIR="${THIS_DIR}/src"
-
-    # clean up artifacts
-    rm -rf "$LAMBDA_LAYER_DIR" || true
-    rm -f "$LAMBDA_LAYER_ZIP_FPATH" || true
-
-    # install dependencies
-    docker logout || true  # log out to use the public ecr
-    docker pull public.ecr.aws/lambda/python:3.12-arm64
-
-    docker run --rm \
-        --volume "${THIS_DIR}":/out \
-        --entrypoint /bin/bash \
-        public.ecr.aws/lambda/python:3.12-arm64 \
-        -c " \
-        pip install --upgrade pip \
-        && pip install \
-            --editable /out/[aws-lambda] \
-            --target /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python \
-        && rm -rf /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python/boto3 \
-        && rm -rf /out/${BUILD_DIR_REL_PATH}/${LAMBDA_LAYER_DIR_NAME}/python/botocore \
-        "
-
-    # bundle dependencies and handler in a zip file
-    cd "$LAMBDA_LAYER_DIR"
-    zip -r "$LAMBDA_LAYER_ZIP_FPATH" ./
-
-    cd "$SRC_DIR"
-    zip -r "$LAMBDA_HANDLER_ZIP_FPATH" ./
-
-    cd "$THIS_DIR"
-
-    # publish the lambda "deployment package" (the handler)
-    aws lambda update-function-code \
-        --function-name "$AWS_LAMBDA_FUNCTION_NAME" \
-        --zip-file fileb://${LAMBDA_HANDLER_ZIP_FPATH} \
-        --output json | cat
-
-    # publish the lambda layer with a new version
-    LAYER_VERSION_ARN=$(aws lambda publish-layer-version \
-        --layer-name cloud-course-project-python-deps \
-        --compatible-runtimes python3.12 \
-        --zip-file fileb://${LAMBDA_LAYER_ZIP_FPATH} \
-        --compatible-architectures arm64 \
-        --query 'LayerVersionArn' \
-        --output text | cat)
-
-    # update the lambda function to use the new layer version
-    aws lambda update-function-configuration \
-        --function-name "$AWS_LAMBDA_FUNCTION_NAME" \
-        --layers $LAYER_VERSION_ARN \
-        --handler "files_api.aws_lambda_handler.handler" \
-        --output json | cat
-}
-
 function install-generated-sdk {
     # setting editable_mode=strict fixes an issue with autocompletion
     # in VS Code when installing editable packages. See:
@@ -138,7 +63,7 @@ function run-mock {
     export AWS_ENDPOINT_URL="http://localhost:5001"
     export AWS_SECRET_ACCESS_KEY="mock"
     export AWS_ACCESS_KEY_ID="mock"
-    export S3_BUCKET_NAME="some-bucket1"
+    export S3_BUCKET_NAME="some-bucket"
 
     # create a bucket called "some-bucket" using the mocked aws server
     aws s3 mb "s3://$S3_BUCKET_NAME"
@@ -147,21 +72,18 @@ function run-mock {
     # --- Mock OpenAI with mockserver --- #
     #######################################
 
-    # docker compose --file ${THIS_DIR}/tests/mocks/docker-compose.yaml up --detach
-    # docker images > /dev/null || (echo "error: docker is not running" && exit 1)
-    # DOCKER_COMPOSE_PID=$!
     OPENAI_MOCK_PORT=5002 python tests/mocks/openai_fastapi_mock_app.py &
     OPENAI_MOCK_PID=$!
 
     # point the OpenAI SDK to the mocked OpenAI server using mocked credentials
-	export OPENAI_BASE_URL="http://localhost:5002"
+	export OPENAI_BASE_URL="http://localhost:${OPENAI_MOCK_PORT}"
 	export OPENAI_API_KEY="mocked_key"
 
     ###########################################################
     # --- Schedule the mocks to shut down on FastAPI Exit --- #
     ###########################################################
 
-    # Trap EXIT signal to kill the moto.server and mocked open-ai server process when uvicorn stops
+    # schedule: when uvicorn stops, kill the moto.server and mocked open-ai server process
     trap 'kill $MOTO_PID; kill $OPENAI_MOCK_PID' EXIT
 
     # ----- #

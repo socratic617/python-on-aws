@@ -1,4 +1,4 @@
-# Lab: Create AI-generated files using the OpenAI
+# Lab: Create AI-generated files using the OpenAI REST API
 
 <figure align="center">
   <img src="../../assets/learning-aws-and-python.png" alt="Cute, generated image" width="350">
@@ -13,9 +13,34 @@ The objective is to write one or more endpoints that save files to S3. The files
 
 ## Resources
 
-- [`./notebooks/openai-sdk.ipynb`](./notebooks/openai-sdk.ipynb) shows you how to 
-  - use the OpenAI API with its SDK
-  - mock API calls performed by the SDK (one way of mocking at least)
+### OpenAI Demo [Notebook](https://mlops-club.github.io/openai-sdk.html)
+
+- [`./notebooks/openai-sdk.ipynb`](https://mlops-club.github.io/openai-sdk.html) (source code [here](./notebooks/openai-sdk.ipynb)) shows you how to 
+  1. Get an OpenAI API key
+  1. use the OpenAI API with its SDK
+  1. mock API calls performed by the SDK
+
+  ![](../../assets/openai-sdk-demo-notebook.png)
+
+  **Note:** The notebook does not render properly in GitHub. 
+
+## Reference implementation
+
+For your own learning, I recommend you think about how to **design**, **implement**, and **test** endpoint(s) yourself.
+
+However, if you get stuck, want to compare your solution, or simply want to skip through the lab, you can find a reference implementation in
+[`./answer-key--reference-implementation`](./answer-key--reference-implementation).
+
+There is a screenshot below of the design.
+
+<details>
+
+<summary>Click to reveal design in the reference implementation</summary>
+
+<img src="../../assets/example-openai-endpoint.png" alt="OpenAI endpoint" width="700">
+<p>After hitting this endpoint to generate a file, it can be viewed by hitting the <code>GET /files/{file_path}</code> endpoint.</p>
+
+</details>
 
 ## Success criteria
 
