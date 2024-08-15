@@ -1,0 +1,37 @@
+# ship the fastapi metrics, traces, and logs to AWS
+
+services:
+
+  # logs to stdout (including metrics in EMF json format); pushes xray traces to the xray-daemon
+  fastapi:
+    build:
+      context: ./traces
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./traces/app:/app
+    environment:
+      # metrics - emf sdk (https://github.com/awslabs/aws-embedded-metrics-python)
+      AWS_EMF_ENVIRONMENT: local # causes metrics to go to stdout
+      AWS_EMF_ENABLE_DEBUG_LOGGING: "true"
+      AWS_EMF_NAMESPACE: local-fastapi-service
+      AWS_EMF_DISABLE_METRIC_EXTRACTION: "false" # prevents logging metrics to stdout when true
+      # these become dimensions on the metric if not disabled--imo not desirable since risks cardinality explosion w/ $0.30/metric
+      # AWS_EMF_LOG_GROUP_NAME: local-fastapi-group
+      # AWS_EMF_LOG_STREAM_NAME: local-fastapi-metrics
+      # AWS_EMF_SERVICE_NAME: fastapi-service
+
+  logspout:
+    # Logs: uses the docker daemon to collect logs from fastapi's stdout and push to cloudwatch
+    image: mdsol/logspout:0.9.0
+    command: "cloudwatch://${AWS_REGION}?NOEC2"
+    # command: "cloudwatch://${AWS_REGION}?DEBUG=1&NOEC2"  # use this line for verbose debug logs
+    environment:
+      EXCLUDE_LABELS: "logspout=disable"
+      LOGSPOUT_GROUP: local-fastapi-group
+      LOGSPOUT_STREAM: "{{.Name}}"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    env_file:
+      - .env

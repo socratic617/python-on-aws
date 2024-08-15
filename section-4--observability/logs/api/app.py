@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Request
+from fastapi import (
+    FastAPI,
+    Request,
+)
 from loguru import logger
 from routes import router
 
 logger.remove()
 logger.add(lambda msg: print(msg), format="{time} | {level} | {message} | {extra}", serialize=False)
+
 
 async def log_request_middleware(request: Request, call_next):
     with logger.contextualize(
@@ -17,6 +21,19 @@ async def log_request_middleware(request: Request, call_next):
 
     return response
 
+
+@router.get("/hello")
+async def read_hello():
+    logger.info("Handling /hello GET request")
+    return {"message": "Hello, World!"}
+
+
+@router.post("/echo")
+async def echo_message(message: str):
+    logger.info(f"Handling /echo POST request with message: {message}")
+    return {"message": message}
+
+
 def create_app() -> FastAPI:
     app = FastAPI()
     app.middleware("http")(log_request_middleware)
@@ -24,8 +41,14 @@ def create_app() -> FastAPI:
     logger.info("App initialized")
     return app
 
+
 app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

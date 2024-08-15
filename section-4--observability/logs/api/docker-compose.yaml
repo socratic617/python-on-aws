@@ -1,0 +1,27 @@
+# ship the fastapi metrics, traces, and logs to AWS
+
+services:
+
+  # logs to stdout (including metrics in EMF json format); pushes xray traces to the xray-daemon
+  fastapi:
+    build:
+      context: ./traces
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./traces/app:/app
+
+  logspout:
+    # Logs: uses the docker daemon to collect logs from fastapi's stdout and push to cloudwatch
+    image: mdsol/logspout:0.9.0
+    command: "cloudwatch://${AWS_REGION}?NOEC2"
+    # command: "cloudwatch://${AWS_REGION}?DEBUG=1&NOEC2"  # use this line for verbose debug logs
+    environment:
+      EXCLUDE_LABELS: "logspout=disable"
+      LOGSPOUT_GROUP: local-fastapi-group
+      LOGSPOUT_STREAM: "{{.Name}}"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    env_file:
+      - .env
