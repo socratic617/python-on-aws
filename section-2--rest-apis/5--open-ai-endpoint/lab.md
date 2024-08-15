@@ -22,7 +22,7 @@ The objective is to write one or more endpoints that save files to S3. The files
 
   ![](../../assets/openai-sdk-demo-notebook.png)
 
-## Reference implementation
+### Reference implementation
 
 For your own learning, I recommend you think about how to **design**, **implement**, and **test** endpoint(s) yourself.
 
@@ -40,7 +40,7 @@ There is a screenshot below of the design.
 
 </details>
 
-## Success criteria
+### Success criteria
 
 - [ ] **Add at least one endpoint** that, when given a `prompt`, generates a files of type
   - [ ] image
